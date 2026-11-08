@@ -13,7 +13,29 @@ permissions:
   contents: write
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify tag matches module.prop
+        id: check
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          FILE_VERSION="$(sed -n 's/^version=//p' module.prop | head -n1)"
+          if [ "$VERSION" = "$FILE_VERSION" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Tag $TAG does not match module.prop version $FILE_VERSION; skipping release."
+          fi
+
   release:
+    needs: guard
+    if: needs.guard.outputs.ok == 'true'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.meta.outputs.version }}
@@ -63,6 +85,7 @@ jobs:
 
   manifest:
     needs: release
+    if: needs.release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
