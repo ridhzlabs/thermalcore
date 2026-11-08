@@ -1,0 +1,6 @@
+dist/
+*.zip
+*.log
+__pycache__/
+.DS_Store
+update.json.tmp

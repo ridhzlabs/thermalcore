@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Syntax checks
+        run: |
+          set -e
+          for f in lib/*.sh bin/thermalcore customize.sh service.sh post-fs-data.sh uninstall.sh cleanup.sh META-INF/com/google/android/update-binary; do
+            bash -n "$f"
+          done
+          node --check webroot/js/app.js
+
+      - name: Build module zip
+        run: python3 scripts/build_zip.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thermalcore-module
+          path: dist/*.zip
+          if-no-files-found: error

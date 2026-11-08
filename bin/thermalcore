@@ -1,0 +1,436 @@
+#!/system/bin/sh
+#
+# ThermalCore - CLI entry point
+#
+# Copyright (C) 2026-2027 ridhzxlabs
+# Licensed under the Apache License, Version 2.0
+#
+# Usage: thermalcore <command> [args]   (run as root)
+
+# module dir: explicit env > source tree (dev) > installed location
+if [ -n "$THERMALCORE_MODDIR" ]; then
+  MODDIR="$THERMALCORE_MODDIR"
+elif [ -f "${0%/*}/../lib/core.sh" ]; then
+  MODDIR="$(CDPATH= cd -- "${0%/*}/.." && pwd)"
+else
+  MODDIR="/data/adb/modules/thermal-core"
+fi
+THERMALCORE_MODDIR="$MODDIR"
+export THERMALCORE_MODDIR
+
+. "$THERMALCORE_MODDIR/lib/core.sh"     || { echo "thermalcore: core.sh missing" >&2; exit 90; }
+. "$THERMALCORE_MODDIR/lib/detect.sh"   || { echo "thermalcore: detect.sh missing" >&2; exit 90; }
+. "$THERMALCORE_MODDIR/lib/backup.sh"   || { echo "thermalcore: backup.sh missing" >&2; exit 90; }
+. "$THERMALCORE_MODDIR/lib/profiles.sh" || { echo "thermalcore: profiles.sh missing" >&2; exit 90; }
+. "$THERMALCORE_MODDIR/lib/status.sh"   || { echo "thermalcore: status.sh missing" >&2; exit 90; }
+
+usage() {
+  cat <<'EOF'
+ThermalCore — intelligent thermal & power management (ridhzxlabs)
+
+Usage: thermalcore <command> [arguments]
+
+Status & info
+  status [--json]        module / device / thermal status
+  detect [--json]        hardware detection (cached 24h)
+  detect --refresh       re-scan hardware now
+  profiles               list profiles, mark active
+  doctor                 self-test: root, detection, writables, backup
+  version                print version
+
+Profiles
+  apply <name>           apply battery_saver|balanced|performance|gaming|custom
+  custom get [all|KEY]   read custom profile (default: all)
+  custom set KEY VALUE   set one custom key (validated)
+  custom setmany K=V...  set several custom keys atomically (validated)
+  reset-custom           reset custom profile to defaults
+  reset-config           reset ALL ThermalCore config to defaults
+
+Config (global toggles)
+  config get KEY         read config key
+  config set KEY VALUE   write config key (whitelisted)
+
+Safety
+  backup [name]          snapshot managed sysfs state
+  backups                list snapshots
+  restore [name]         restore snapshot (default: latest)
+  restore --factory      restore pre-install values (install-initial)
+
+Services
+  guard start|stop|status   thermal guard watchdog
+  daemon start|stop|restart start/stop/restart ThermalCore AI daemon
+  log [N]                tail N lines of module log (default 50)
+EOF
+}
+
+need_root() {
+  if [ "$(id -u 2>/dev/null)" != "0" ]; then
+    echo "thermalcore: must run as root (use su -c 'thermalcore ...')" >&2
+    exit 77
+  fi
+}
+
+fmt_temp() { normalize_temp "$1"; }
+
+cmd_status() {
+  if [ "$1" = "--json" ]; then
+    status_json
+    return $?
+  fi
+  init_default_config
+  _sj="$(status_json)"
+  _btemp="$(printf '%s' "$_sj" | sed -n 's/.*"temp_c": \([0-9.-]*\).*/\1/p' | head -n1)"
+  _tmax="$(printf '%s' "$_sj" | sed -n 's/.*"thermal_max_c": \([0-9.-]*\).*/\1/p' | head -n1)"
+  cat <<EOF
+ThermalCore $(grep -m1 '^version=' "$THERMALCORE_MODDIR/module.prop" | cut -d= -f2)
+  profile      : $(current_profile)
+  battery      : ${_btemp:-?}C  ($(read_file /sys/class/power_supply/battery/status), $(read_file /sys/class/power_supply/battery/capacity)%)
+  thermal max  : ${_tmax:-?}C
+  daemon       : $(pidof thermal-cored 2>/dev/null | awk '{print "pid "$1}' || echo stopped)
+  learning     : $(prop_get persist.sys.rianixia.learning_enabled unknown)
+  guard        : $( [ "$(config_get ENABLE_THERMAL_GUARD)" = "0" ] && echo disabled || echo enabled ) (triggered: $(config_get triggered "$THERMALCORE_GUARD_STATE" 2>/dev/null || echo 0))
+  root manager : $(detect_get root_manager)
+EOF
+}
+
+cmd_detect() {
+  case "$1" in
+    --refresh) detect_refresh >/dev/null; echo "detection cache refreshed"; return 0 ;;
+    --json)
+      _first=1
+      printf '{'
+      detect_cache | while IFS='=' read -r _k _v || [ -n "$_k" ]; do
+        case "$_k" in ''|\#*) continue ;; esac
+        if [ "$_first" = 1 ]; then _first=0; else printf ','; fi
+        printf '"%s":"%s"' "$(json_escape "$_k")" "$(json_escape "$_v")"
+      done
+      printf '}\n'
+      return 0 ;;
+    ""|summary)
+      detect_refresh >/dev/null
+      detect_cache | grep -E '^(chipset|platform|hardware|device|product_model|android_release|kernel|root_manager|mem_total_kb|cpu_cluster_count|gpu_kind|gpu_name|gpu_governor|thermal_zone_count|storage_devs)=' \
+        | while IFS='=' read -r k v; do printf '  %-24s %s\n' "$k" "$v"; done
+      return 0 ;;
+    *) echo "usage: thermalcore detect [--json|--refresh]" >&2; return 2 ;;
+  esac
+}
+
+cmd_profiles() {
+  init_default_config
+  _cur="$(current_profile)"
+  for _p in battery_saver balanced performance gaming custom; do
+    _mark=" "; [ "$_p" = "$_cur" ] && _mark="*"
+    _desc=""
+    case "$_p" in
+      battery_saver) _desc="max battery, capped clocks" ;;
+      balanced)      _desc="vendor default, full clocks" ;;
+      performance)   _desc="max responsiveness, performance governor" ;;
+      gaming)        _desc="performance + locked-ish GPU floor, low I/O latency" ;;
+      custom)        _desc="your own values (WebUI / custom.conf)" ;;
+    esac
+    printf '  %s %-14s %s\n' "$_mark" "$_p" "$_desc"
+  done
+}
+
+cmd_apply() {
+  need_root
+  _name="$1"
+  [ -z "$_name" ] && { echo "usage: thermalcore apply <battery_saver|balanced|performance|gaming|custom>" >&2; return 2; }
+  case "$_name" in custom) init_default_config ;; esac
+  APPLY_FAIL=0; APPLY_WARN=0; APPLY_NOTE=""
+  if apply_profile "$_name"; then
+    printf '%s' "$APPLY_NOTE"
+    echo "applied: $_name (warn=$APPLY_WARN)"
+    return 0
+  else
+    _rc=$?
+    printf '%s' "$APPLY_NOTE"
+    echo "apply failed, previous state restored (rc=$_rc)" >&2
+    return 1
+  fi
+}
+
+# --- custom profile key validation ------------------------------------------
+custom_key_valid() {
+  _k="$1"; _v="$2"
+  case "$_k" in
+    CPU_GOVERNOR|GPU_GOVERNOR)
+      case "$_v" in keep|-1) return 0 ;; esac
+      printf '%s' "$_v" | grep -qE '^[A-Za-z0-9_-]{1,32}$' ;;
+    CPU_MAX_FREQ_PCT|GPU_MAX_FREQ_PCT)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -ge 20 ] && [ "$_v" -le 100 ] ;;
+    CPU_MIN_FREQ_PCT|GPU_MIN_FREQ_PCT)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -le 100 ] ;;
+    IO_SCHEDULER)
+      case "$_v" in auto|keep|-1) return 0 ;; esac
+      printf '%s' "$_v" | grep -qE '^[a-z0-9-]{1,16}$' ;;
+    IO_READ_AHEAD_KB)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -ge 32 ] && [ "$_v" -le 2048 ] ;;
+    VM_SWAPPINESS)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -le 200 ] ;;
+    VM_VFS_CACHE_PRESSURE)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -le 1000 ] ;;
+    VM_DIRTY_RATIO|VM_DIRTY_BACKGROUND_RATIO)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -ge 1 ] && [ "$_v" -le 100 ] ;;
+    VM_COMPACTION_PROACTIVENESS)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -le 100 ] ;;
+    SUGOV_UP_RATE_LIMIT_US|SUGOV_DOWN_RATE_LIMIT_US)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -ge 10 ] && [ "$_v" -le 10000 ] ;;
+    *) return 1 ;;
+  esac
+}
+
+cmd_custom() {
+  need_root
+  init_default_config
+  _sub="$1"; shift
+  case "$_sub" in
+    get)
+      _k="$1"
+      if [ -z "$_k" ] || [ "$_k" = "all" ]; then
+        cat "$THERMALCORE_CUSTOM_CONF"
+      else
+        config_get "$_k" "$THERMALCORE_CUSTOM_CONF" || { echo "key not found: $_k" >&2; return 1; }
+      fi ;;
+    setmany)
+      _pairs=""; _bad=""
+      for _pair in "$@"; do
+        case "$_pair" in
+          *=*) ;;
+          *) _bad="$_bad $_pair"; continue ;;
+        esac
+        _k="${_pair%%=*}"; _v="${_pair#*=}"
+        if custom_key_valid "$_k" "$_v"; then
+          _pairs="$_pairs $_k=$_v"
+        else
+          _bad="$_bad $_pair"
+        fi
+      done
+      if [ -n "$_bad" ]; then
+        echo "rejected:$_bad" >&2
+        return 3
+      fi
+      _n=0
+      for _pair in $_pairs; do
+        _k="${_pair%%=*}"; _v="${_pair#*=}"
+        config_set "$_k" "$_v" "$THERMALCORE_CUSTOM_CONF"
+        _n=$((_n + 1))
+      done
+      echo "custom.conf updated: $_n key(s)" ;;
+    set)
+      _k="$1"; _v="$2"
+      if [ -z "$_k" ] || [ -z "$_v" ]; then echo "usage: thermalcore custom set KEY VALUE" >&2; return 2; fi
+      if ! custom_key_valid "$_k" "$_v"; then
+        echo "invalid KEY or VALUE rejected: $_k=$_v" >&2
+        return 3
+      fi
+      config_set "$_k" "$_v" "$THERMALCORE_CUSTOM_CONF"
+      echo "custom.conf: $_k=$_v" ;;
+    *) echo "usage: thermalcore custom get [all|KEY] | custom set KEY VALUE" >&2; return 2 ;;
+  esac
+}
+
+# --- config whitelist --------------------------------------------------------
+config_key_valid() {
+  _k="$1"; _v="$2"
+  case "$_k" in
+    CURRENT_PROFILE)
+      case "$_v" in battery_saver|balanced|performance|gaming|custom) return 0 ;; *) return 1 ;; esac ;;
+    ENABLE_CPU_TWEAKS|ENABLE_GPU_TWEAKS|ENABLE_IO_TWEAKS|ENABLE_VM_TWEAKS|ENABLE_THERMAL_GUARD|BACKUP_ON_APPLY)
+      case "$_v" in 0|1) return 0 ;; *) return 1 ;; esac ;;
+    THERMAL_GUARD_INTERVAL)
+      is_uint "$_v" && [ "$_v" -ge 10 ] && [ "$_v" -le 3600 ] ;;
+    THERMAL_GUARD_BATTERY_MAX_C)
+      is_uint "$_v" && [ "$_v" -ge 35 ] && [ "$_v" -le 60 ] ;;
+    THERMAL_GUARD_RECOVER_C)
+      is_uint "$_v" && [ "$_v" -ge 30 ] && [ "$_v" -le 55 ] ;;
+    *) return 1 ;;
+  esac
+}
+
+cmd_config() {
+  need_root
+  init_default_config
+  _sub="$1"; shift
+  case "$_sub" in
+    get)
+      [ -z "$1" ] && { cat "$THERMALCORE_STATE_FILE"; return 0; }
+      config_get "$1" || { echo "key not found: $1" >&2; return 1; } ;;
+    set)
+      _k="$1"; _v="$2"
+      if [ -z "$_k" ] || [ -z "$_v" ]; then echo "usage: thermalcore config set KEY VALUE" >&2; return 2; fi
+      if ! config_key_valid "$_k" "$_v"; then
+        echo "invalid config key or value rejected: $_k=$_v" >&2
+        return 3
+      fi
+      config_set "$_k" "$_v"
+      echo "config.conf: $_k=$_v" ;;
+    *) echo "usage: thermalcore config get [KEY] | config set KEY VALUE" >&2; return 2 ;;
+  esac
+}
+
+cmd_backup() {
+  need_root
+  _name="${1:-manual-$(date +%Y%m%d-%H%M%S)}"
+  backup_snapshot "$_name" "manual" && echo "backup saved: $_name"
+}
+
+cmd_backups() {
+  backup_list | while IFS='	' read -r n c r f; do
+    printf '  %-34s files=%s reason=%s\n' "$n" "$f" "$r"
+  done
+}
+
+cmd_restore() {
+  need_root
+  if [ "$1" = "--factory" ]; then
+    backup_restore "$BACKUP_INSTALL_NAME"
+    _rc=$?
+    echo "factory restore rc=$_rc ($_rc failures)"
+    return $_rc
+  fi
+  _name="${1:-$(backup_latest)}"
+  [ -z "$_name" ] && { echo "no backups available" >&2; return 1; }
+  backup_restore "$_name"
+  _rc=$?
+  echo "restore '$_name' rc=$_rc ($_rc failures)"
+  return $_rc
+}
+
+cmd_reset_config() {
+  need_root
+  rm -f "$THERMALCORE_STATE_FILE" "$THERMALCORE_CUSTOM_CONF"
+  init_default_config
+  echo "config reset to defaults (profile: balanced)"
+}
+
+cmd_reset_custom() {
+  need_root
+  reset_custom_conf
+  echo "custom profile reset to defaults"
+}
+
+cmd_guard() {
+  need_root
+  case "$1" in
+    start)  guard_start ;;
+    stop)   guard_stop ;;
+    status)
+      if [ -f "$THERMALCORE_GUARD_PID" ] && kill -0 "$(cat "$THERMALCORE_GUARD_PID")" 2>/dev/null; then
+        echo "guard running (pid $(cat "$THERMALCORE_GUARD_PID"))"
+        [ -f "$THERMALCORE_GUARD_STATE" ] && cat "$THERMALCORE_GUARD_STATE"
+      else
+        echo "guard not running"
+        [ -f "$THERMALCORE_GUARD_STATE" ] && cat "$THERMALCORE_GUARD_STATE"
+      fi ;;
+    *) echo "usage: thermalcore guard start|stop|status" >&2; return 2 ;;
+  esac
+}
+
+cmd_daemon() {
+  need_root
+  case "$1" in
+    start)
+      if [ -n "$(pidof thermal-cored 2>/dev/null)" ]; then
+        echo "daemon already running (pid $(pidof thermal-cored))"; return 0
+      fi
+      ( "$THERMALCORE_MODDIR/thermal-cored" >/dev/null 2>&1 & )
+      sleep 1
+      module_prop_set_status
+      pidof thermal-cored >/dev/null 2>&1 && echo "daemon started (pid $(pidof thermal-cored))" || { echo "daemon failed to start" >&2; return 1; } ;;
+    stop)
+      _dp="$(pidof thermal-cored 2>/dev/null)"
+      [ -z "$_dp" ] && { echo "daemon not running"; return 0; }
+      # shellcheck disable=SC2086
+      kill -TERM $_dp 2>/dev/null
+      _i=0; while [ -n "$(pidof thermal-cored 2>/dev/null)" ] && [ "$_i" -lt 25 ]; do sleep 0.2; _i=$((_i+1)); done
+      pidof thermal-cored >/dev/null 2>&1 && {
+        # shellcheck disable=SC2086
+        kill -9 $(pidof thermal-cored) 2>/dev/null
+      }
+      module_prop_set_status
+      echo "daemon stopped" ;;
+    restart)
+      "$0" daemon stop >/dev/null 2>&1
+      "$0" daemon start ;;
+    status)
+      _dp="$(pidof thermal-cored 2>/dev/null)"
+      [ -n "$_dp" ] && echo "daemon running (pid $_dp)" || echo "daemon stopped"
+      echo "learning: $(prop_get persist.sys.rianixia.learning_enabled unknown)"
+      echo "bigdata : $(prop_get persist.sys.rianixia.thermalcore-bigdata.path unset)" ;;
+    *) echo "usage: thermalcore daemon start|stop|restart|status" >&2; return 2 ;;
+  esac
+}
+
+cmd_log() {
+  if [ "$1" = "clear" ]; then
+    : > "$THERMALCORE_LOG_DIR/thermalcore.log" 2>/dev/null
+    log "log cleared"
+    echo "log cleared"
+    return 0
+  fi
+  _n="${1:-50}"; is_uint "$_n" || _n=50
+  tail -n "$_n" "$THERMALCORE_LOG_DIR/thermalcore.log" 2>/dev/null || echo "no log yet"
+}
+
+cmd_doctor() {
+  _fail=0
+  _ok()   { printf '  [PASS] %s\n' "$1"; }
+  _warn() { printf '  [WARN] %s\n' "$1"; }
+  _bad()  { printf '  [FAIL] %s\n' "$1"; _fail=$((_fail + 1)); }
+
+  [ "$(id -u 2>/dev/null)" = "0" ] && _ok "root" || _bad "not root"
+
+  detect_cache >/dev/null 2>&1 && _ok "hardware detection ($(detect_get chipset))" || _bad "detection failed"
+
+  _pol_count=0
+  for _p in "$(spath /sys/devices/system/cpu/cpufreq)"/policy*; do [ -d "$_p" ] && _pol_count=$((_pol_count + 1)); done
+  [ "$_pol_count" -gt 0 ] && _ok "cpufreq policies: $_pol_count" || _bad "no cpufreq policies found"
+
+  for _p in "$(spath /sys/devices/system/cpu/cpufreq)"/policy*; do
+    [ -d "$_p" ] || continue
+    [ -w "$_p/scaling_max_freq" ] && _ok "writable $(basename "$_p")/scaling_max_freq" || _warn "not writable $(basename "$_p")/scaling_max_freq"
+  done
+
+  _gp="$(_gpu_paths 2>/dev/null)" && _ok "GPU node: ${_gp#*	}" || _warn "no GPU node detected (GPU tweaks skipped)"
+
+  [ -d "$THERMALCORE_BACKUP_DIR" ] && _ok "backup dir: $THERMALCORE_BACKUP_DIR" || _bad "backup dir missing"
+  [ -f "$THERMALCORE_STATE_FILE" ] && _ok "config.conf present (profile=$(current_profile))" || _warn "config.conf missing (will be created)"
+  [ -x "$THERMALCORE_MODDIR/thermal-cored" ] && _ok "daemon binary present" || _bad "thermal-cored missing/not executable"
+  [ -d "$THERMALCORE_MODDIR/webroot" ] && _ok "webroot present (WebUI ready)" || _warn "webroot missing"
+
+  _bt="$(battery_temp_c)"; awk -v b="$_bt" 'BEGIN{ exit !(b > 0) }' && _ok "battery sensor: ${_bt}C" || _warn "battery sensor unreadable (guard disabled)"
+
+  echo ""
+  [ "$_fail" = "0" ] && echo "doctor: all critical checks passed" || echo "doctor: $_fail critical failure(s)"
+  return "$_fail"
+}
+
+case "$1" in
+  ""|help|-h|--help) usage ;;
+  status)   shift; cmd_status "$@" ;;
+  detect)   shift; cmd_detect "$@" ;;
+  profiles) cmd_profiles ;;
+  apply)    shift; cmd_apply "$@" ;;
+  custom)   shift; cmd_custom "$@" ;;
+  config)   shift; cmd_config "$@" ;;
+  backup)   shift; cmd_backup "$@" ;;
+  backups)  cmd_backups ;;
+  restore)  shift; cmd_restore "$@" ;;
+  reset-config) cmd_reset_config ;;
+  reset-custom) cmd_reset_custom ;;
+  guard)    shift; cmd_guard "$@" ;;
+  daemon)   shift; cmd_daemon "$@" ;;
+  log)      shift; cmd_log "$@" ;;
+  doctor)   cmd_doctor ;;
+  version|--version) printf 'ThermalCore %s (ridhzxlabs)\n' "$(grep -m1 '^version=' "$THERMALCORE_MODDIR/module.prop" | cut -d= -f2)" ;;
+  *) echo "unknown command: $1 (try 'thermalcore help')" >&2; exit 2 ;;
+esac

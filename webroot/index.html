@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>ThermalCore — Universal Thermal &amp; Power Engine</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23ff6a1a'/%3E%3Cstop offset='1' stop-color='%23ffc247'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M12 2c1 4-2 5.5-2 8a3 3 0 0 0 3 3c1.7 0 3-1.3 3-3 2 2 3 4.2 3 6.5A7.5 7.5 0 0 1 12 22a7.5 7.5 0 0 1-7.5-7.5C4.5 9.4 9 7 12 2z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="bg-aura" aria-hidden="true"></div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <defs><linearGradient id="flame" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#ff6a1a"/><stop offset="1" stop-color="#ffc247"/>
+        </linearGradient></defs>
+        <path fill="url(#flame)" d="M12 2c1 4-2 5.5-2 8a3 3 0 0 0 6 0c2 2 3 4.2 3 6.5A7.5 7.5 0 0 1 12 22a7.5 7.5 0 0 1-7.5-7.5C4.5 9.4 9 7 12 2z"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>ThermalCore</h1>
+      <p>Universal thermal &amp; power engine</p>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="chip" id="versionChip">v2.1.0</span>
+    <span class="pill pill-warn" id="bridgePill">checking…</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabbar" aria-label="Sections">
+  <button class="tab active" data-tab="dashboard" type="button">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>Dashboard</span>
+  </button>
+  <button class="tab" data-tab="profiles" type="button">
+    <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h8M16 18h4"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="18" r="2"/></svg>
+    <span>Profiles</span>
+  </button>
+  <button class="tab" data-tab="custom" type="button">
+    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a4.5 4.5 0 0 0-6 6L3 18v3h3l5.7-5.7a4.5 4.5 0 0 0 6-6l-2.4 2.4-2.1-.3-.3-2.1 2.8-3z"/></svg>
+    <span>Custom</span>
+  </button>
+  <button class="tab" data-tab="settings" type="button">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    <span>Settings</span>
+  </button>
+  <button class="tab" data-tab="advanced" type="button">
+    <svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V7l8-4z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
+    <span>Advanced</span>
+  </button>
+</nav>
+
+<main class="content">
+
+  <!-- ================= DASHBOARD ================= -->
+  <section class="tab-panel active" id="tab-dashboard">
+    <div class="banner hidden" id="demoBanner">
+      <strong>Preview mode.</strong> WebUI bridge not detected. Open this page from
+      KernelSU / APatch / MMRL (module → WebUI) to control the module. Values below are demo data.
+    </div>
+    <div class="banner banner-error hidden" id="statusError">
+      <strong>Module not reachable.</strong> <span id="statusErrorText"></span>
+    </div>
+
+    <div class="grid hero-grid">
+      <article class="card card-hero">
+        <div class="card-head">
+          <span class="eyebrow">Active profile</span>
+          <span class="badge badge-accent" id="profileBadge">—</span>
+        </div>
+        <div class="hero-name" id="profileName">—</div>
+        <p class="hero-desc" id="profileDesc">Loading profile…</p>
+        <div class="hero-actions">
+          <button class="btn btn-ghost" type="button" data-quick-profile="balanced">Balanced</button>
+          <button class="btn btn-ghost" type="button" data-quick-profile="gaming">Gaming</button>
+          <button class="btn btn-primary" type="button" id="gotoProfiles">All profiles</button>
+        </div>
+      </article>
+
+      <article class="card stat" id="batteryCard">
+        <div class="stat-top"><span class="stat-label">Battery</span><span class="dot" id="batteryDot"></span></div>
+        <div class="stat-value"><span id="batteryTemp">—</span><small>°C</small></div>
+        <div class="meter"><div class="meter-fill" id="batteryMeter"></div></div>
+        <div class="stat-foot" id="batteryFoot">—</div>
+      </article>
+
+      <article class="card stat" id="thermalCard">
+        <div class="stat-top"><span class="stat-label">Hottest zone</span><span class="dot" id="thermalDot"></span></div>
+        <div class="stat-value"><span id="thermalMax">—</span><small>°C</small></div>
+        <div class="meter"><div class="meter-fill" id="thermalMeter"></div></div>
+        <div class="stat-foot" id="thermalFoot">—</div>
+      </article>
+
+      <article class="card stat" id="daemonCard">
+        <div class="stat-top"><span class="stat-label">ThermalCore AI</span><span class="dot" id="daemonDot"></span></div>
+        <div class="stat-value stat-value-sm"><span id="daemonState">—</span></div>
+        <div class="stat-foot" id="daemonFoot">—</div>
+        <div class="stat-foot muted" id="daemonMeta"></div>
+      </article>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>CPU clusters</h2>
+        <span class="hint" id="cpuUsage">usage —</span>
+      </div>
+      <div class="cluster-list" id="clusterList">
+        <div class="skeleton-row"></div><div class="skeleton-row"></div>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <article class="card">
+        <div class="card-head"><h2>GPU</h2><span class="hint" id="gpuGovernor">—</span></div>
+        <div class="gpu-row">
+          <div class="gpu-freq"><span id="gpuFreq">—</span><small>MHz</small></div>
+          <div class="gpu-meta" id="gpuMeta">—</div>
+        </div>
+        <div class="meter"><div class="meter-fill" id="gpuMeter"></div></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Quick controls</h2></div>
+        <label class="switch-row">
+          <span><strong>Thermal guard</strong><em>Auto-cap clocks when battery overheats</em></span>
+          <input type="checkbox" id="quickGuard" class="switch">
+        </label>
+        <label class="switch-row">
+          <span><strong>AI learning</strong><em>ThermalCore adaptive engine</em></span>
+          <input type="checkbox" id="quickLearning" class="switch">
+        </label>
+        <div class="inline-actions">
+          <button class="btn btn-ghost btn-sm" type="button" id="quickRestartDaemon">Restart AI daemon</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Thermal zones</h2><span class="hint">live sensors</span></div>
+      <div class="zone-list" id="zoneList"><span class="hint">Loading…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Device</h2><span class="hint" id="rootManagerChip">—</span></div>
+      <div class="device-grid" id="deviceGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================= PROFILES ================= -->
+  <section class="tab-panel" id="tab-profiles">
+    <div class="section-head">
+      <h2>Adaptive profiles</h2>
+      <p>One tap reconfigures CPU, GPU, I/O and VM safely. A snapshot is taken before
+         every apply; any failure triggers an automatic rollback.</p>
+    </div>
+    <div class="profile-grid" id="profileGrid"></div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reset configuration</h2></div>
+      <p class="hint">Wipes saved ThermalCore settings (active profile, toggles, custom values)
+         back to defaults. Kernel values are not touched.</p>
+      <button class="btn btn-danger-ghost" type="button" id="resetConfigBtn">Reset to defaults</button>
+    </div>
+  </section>
+
+  <!-- ================= CUSTOM ================= -->
+  <section class="tab-panel" id="tab-custom">
+    <div class="section-head">
+      <h2>Custom profile</h2>
+      <p>Every value is validated on device and clamped to what the kernel supports.
+         <code>-1</code> means “leave current kernel value untouched”.</p>
+    </div>
+
+    <form id="customForm" autocomplete="off" novalidate>
+      <details class="card acc" open>
+        <summary><span>CPU</span><small>governor &amp; frequency limits</small></summary>
+        <div class="acc-body">
+          <label class="field">
+            <span>Governor</span>
+            <select id="c_cpu_gov">
+              <option value="keep">keep (kernel default)</option>
+              <option value="schedutil">schedutil</option>
+              <option value="sugov_ext">sugov_ext</option>
+              <option value="performance">performance</option>
+              <option value="powersave">powersave</option>
+              <option value="conservative">conservative</option>
+              <option value="interactive">interactive</option>
+              <option value="walt">walt</option>
+              <option value="ondemand">ondemand</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Max frequency <b id="c_cpu_max_val">100%</b></span>
+            <input type="range" id="c_cpu_max" min="20" max="100" step="1" value="100">
+          </label>
+          <label class="field">
+            <span>Min frequency floor <b id="c_cpu_min_val">keep</b></span>
+            <input type="range" id="c_cpu_min" min="-1" max="100" step="1" value="-1">
+          </label>
+        </div>
+      </details>
+
+      <details class="card acc">
+        <summary><span>GPU</span><small>governor &amp; frequency limits</small></summary>
+        <div class="acc-body">
+          <label class="field">
+            <span>Governor</span>
+            <select id="c_gpu_gov">
+              <option value="keep">keep (kernel default)</option>
+              <option value="simple_ondemand">simple_ondemand</option>
+              <option value="performance">performance</option>
+              <option value="powersave">powersave</option>
+              <option value="userspace">userspace</option>
+              <option value="msm-adreno-tz">msm-adreno-tz</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Max frequency <b id="c_gpu_max_val">100%</b></span>
+            <input type="range" id="c_gpu_max" min="20" max="100" step="1" value="100">
+          </label>
+          <label class="field">
+            <span>Min frequency floor <b id="c_gpu_min_val">keep</b></span>
+            <input type="range" id="c_gpu_min" min="-1" max="100" step="1" value="-1">
+          </label>
+        </div>
+      </details>
+
+      <details class="card acc">
+        <summary><span>I/O</span><small>storage scheduler &amp; readahead</small></summary>
+        <div class="acc-body">
+          <label class="field">
+            <span>Scheduler</span>
+            <select id="c_io_sched">
+              <option value="auto">auto (keep kernel)</option>
+              <option value="none">none</option>
+              <option value="noop">noop</option>
+              <option value="mq-deadline">mq-deadline</option>
+              <option value="deadline">deadline</option>
+              <option value="kyber">kyber</option>
+              <option value="bfq">bfq</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Read-ahead (KB)</span>
+            <input type="number" id="c_io_ra" min="-1" max="2048" step="16" inputmode="numeric">
+          </label>
+        </div>
+      </details>
+
+      <details class="card acc">
+        <summary><span>VM</span><small>memory &amp; writeback behaviour</small></summary>
+        <div class="acc-body">
+          <label class="field"><span>swappiness</span><input type="number" id="c_vm_swap" min="-1" max="200" inputmode="numeric"></label>
+          <label class="field"><span>vfs_cache_pressure</span><input type="number" id="c_vm_vfs" min="-1" max="1000" inputmode="numeric"></label>
+          <label class="field"><span>dirty_ratio</span><input type="number" id="c_vm_dirty" min="-1" max="100" inputmode="numeric"></label>
+          <label class="field"><span>dirty_background_ratio</span><input type="number" id="c_vm_dirtybg" min="-1" max="100" inputmode="numeric"></label>
+          <label class="field"><span>compaction_proactiveness</span><input type="number" id="c_vm_compact" min="-1" max="100" inputmode="numeric"></label>
+        </div>
+      </details>
+
+      <details class="card acc">
+        <summary><span>Expert</span><small>schedutil rate limits (µs)</small></summary>
+        <div class="acc-body">
+          <label class="field"><span>up_rate_limit_us</span><input type="number" id="c_sugov_up" min="-1" max="10000" inputmode="numeric"></label>
+          <label class="field"><span>down_rate_limit_us</span><input type="number" id="c_sugov_down" min="-1" max="10000" inputmode="numeric"></label>
+          <p class="hint">Only applied on kernels exposing a schedutil/sugov_ext tunable directory.</p>
+        </div>
+      </details>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="button" id="customApply">Save &amp; apply</button>
+        <button class="btn btn-ghost" type="button" id="customSave">Save only</button>
+        <button class="btn btn-ghost" type="button" id="customReload">Reload</button>
+        <button class="btn btn-danger-ghost" type="button" id="customDefaults">Restore defaults</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="tab-panel" id="tab-settings">
+    <div class="section-head">
+      <h2>Power management</h2>
+      <p>Domain switches used by every profile application.</p>
+    </div>
+
+    <div class="card">
+      <label class="switch-row">
+        <span><strong>CPU tuning</strong><em>governor &amp; frequency limits</em></span>
+        <input type="checkbox" id="s_cpu" class="switch">
+      </label>
+      <label class="switch-row">
+        <span><strong>GPU tuning</strong><em>devfreq / KGSL governor &amp; limits</em></span>
+        <input type="checkbox" id="s_gpu" class="switch">
+      </label>
+      <label class="switch-row">
+        <span><strong>I/O tuning</strong><em>storage scheduler &amp; readahead</em></span>
+        <input type="checkbox" id="s_io" class="switch">
+      </label>
+      <label class="switch-row">
+        <span><strong>VM tuning</strong><em>swappiness &amp; writeback ratios</em></span>
+        <input type="checkbox" id="s_vm" class="switch">
+      </label>
+    </div>
+
+    <div class="section-head sm"><h2>Thermal management</h2></div>
+    <div class="card">
+      <label class="switch-row">
+        <span><strong>Thermal guard</strong><em>Cap clocks when the battery gets too hot. Never disables built-in thermal protection.</em></span>
+        <input type="checkbox" id="s_guard" class="switch">
+      </label>
+      <label class="field">
+        <span>Battery threshold <b id="s_guard_max_val">45°C</b></span>
+        <input type="range" id="s_guard_max" min="35" max="60" step="1" value="45">
+      </label>
+      <label class="field">
+        <span>Check interval</span>
+        <select id="s_guard_interval">
+          <option value="10">10 s</option>
+          <option value="30">30 s</option>
+          <option value="60">60 s</option>
+          <option value="120">2 min</option>
+          <option value="300">5 min</option>
+        </select>
+      </label>
+      <p class="hint">Recovery hysteresis is automatic (threshold − 3 °C): the previous profile is
+        re-applied once the battery cools down.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>ThermalCore AI daemon</h2><span class="badge" id="daemonVersion">—</span></div>
+      <label class="switch-row">
+        <span><strong>Adaptive learning</strong><em>Contextual PID-LSTM engine for smarter throttling</em></span>
+        <input type="checkbox" id="s_learning" class="switch">
+      </label>
+      <label class="switch-row">
+        <span><strong>Debug logging</strong><em>Extra daemon verbosity (logcat tag RianixiaThermalCore)</em></span>
+        <input type="checkbox" id="s_debug" class="switch">
+      </label>
+      <div class="inline-actions">
+        <button class="btn btn-ghost" type="button" id="restartDaemon">Restart AI daemon</button>
+      </div>
+      <p class="hint">Learning changes take effect after a daemon restart.</p>
+    </div>
+  </section>
+
+  <!-- ================= ADVANCED ================= -->
+  <section class="tab-panel" id="tab-advanced">
+    <div class="section-head">
+      <h2>Safety &amp; recovery</h2>
+      <p>All changes are reversible. ThermalCore never touches the boot image, partitions or
+         built-in thermal trip points.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Backups</h2><span class="hint" id="latestBackup">—</span></div>
+      <div class="inline-actions">
+        <button class="btn btn-ghost" type="button" id="backupNow">Back up now</button>
+        <button class="btn btn-ghost" type="button" id="restoreLatest">Restore latest backup</button>
+        <button class="btn btn-danger-ghost" type="button" id="restoreFactory">Restore factory (pre-install)</button>
+      </div>
+      <p class="hint">A snapshot of the original kernel values is captured at install time and on
+         every profile apply. Restoring rewrites only the managed sysfs nodes.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Module log</h2>
+        <div class="inline-actions">
+          <button class="btn btn-ghost btn-sm" type="button" id="logRefresh">Refresh</button>
+          <button class="btn btn-danger-ghost btn-sm" type="button" id="logClear">Clear</button>
+        </div>
+      </div>
+      <pre class="log-view" id="logView">Loading…</pre>
+    </div>
+
+    <div class="card">
+      <h2>Safety guarantees</h2>
+      <ul class="ticks">
+        <li>Built-in thermal protection is <strong>never</strong> disabled or overridden.</li>
+        <li>Every write is validated and clamped to detected kernel capabilities.</li>
+        <li>Automatic snapshot + rollback if a profile apply fails.</li>
+        <li>Pre-install state backed up for full restore on uninstall.</li>
+        <li>No boot image / partition / SELinux modifications.</li>
+        <li>Lightweight: one small CLI, no background polling beyond the thermal guard.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>About</h2>
+      <div class="about-grid">
+        <div><span>Module</span><b>ThermalCore</b></div>
+        <div><span>Version</span><b id="aboutVersion">—</b></div>
+        <div><span>Author</span><b>ridhzxlabs</b></div>
+        <div><span>Engine</span><b>ThermalCore AI (PID-LSTM)</b></div>
+        <div><span>Config</span><b><code>/data/adb/thermal-core</code></b></div>
+        <div><span>Module dir</span><b><code>/data/adb/modules/thermal-core</code></b></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <span>ThermalCore · ridhzxlabs</span>
+  <span class="dot-sep"></span>
+  <span id="footerUpdate">—</span>
+</footer>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-box">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalBody"></p>
+    <pre id="modalPre" class="hidden"></pre>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" type="button" id="modalOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

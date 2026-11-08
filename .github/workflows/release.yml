@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v2.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      version_code: ${{ steps.meta.outputs.version_code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve version
+        id: meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build release zip
+        run: |
+          python3 scripts/build_zip.py \
+            --version "${{ steps.meta.outputs.version }}" \
+            --version-code "${{ steps.meta.outputs.version_code }}" \
+            --out "dist/ThermalCore-${{ steps.meta.outputs.version }}.zip"
+
+      - name: Extract release notes
+        run: |
+          python3 scripts/changelog_extract.py "${{ steps.meta.outputs.version }}" > dist/notes.md
+          if [ ! -s dist/notes.md ]; then
+            echo "Release v${{ steps.meta.outputs.version }}" > dist/notes.md
+            git log -1 --pretty=%B >> dist/notes.md
+          fi
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.meta.outputs.version }}
+          name: ThermalCore v${{ steps.meta.outputs.version }}
+          body_path: dist/notes.md
+          files: dist/ThermalCore-${{ steps.meta.outputs.version }}.zip
+          fail_on_unmatched_files: true
+
+  manifest:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Update update.json
+        run: |
+          python3 scripts/write_update_json.py \
+            --version "${{ needs.release.outputs.version }}" \
+            --version-code "${{ needs.release.outputs.version_code }}"
+
+      - name: Commit manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: update manifest for v${{ needs.release.outputs.version }}"
+          git push origin main
