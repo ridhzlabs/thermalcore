@@ -28,6 +28,7 @@ jobs:
             bash -n "$f"
           done
           node --check webroot/js/app.js
+          node tests/webui_bridge_test.js
 
       - name: Build module zip
         run: python3 scripts/build_zip.py

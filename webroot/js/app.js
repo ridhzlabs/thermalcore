@@ -64,7 +64,7 @@
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.1.0', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.1.1', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
@@ -159,6 +159,7 @@
   }
   function hasBridge() { return !!bridgeFn(); }
 
+  /* bridge-core:start */
   function normalizeResult(r) {
     if (r == null) return { code: 0, stdout: '', stderr: '' };
     if (typeof r === 'string') return { code: 0, stdout: r, stderr: '' };
@@ -173,28 +174,47 @@
     };
   }
 
-  function bridgeExec(cmd) {
+  var bridgeSeq = 0;
+
+  /*
+   * KernelSU / KernelSU-Next / APatch / MMRL expect the async callback as a
+   * global function *name* (string), not a function object. Passing a function
+   * makes the manager build invalid JS and never call back, which looked like
+   * a 25s "command timed out" after every action.
+   */
+  function bridgeExec(cmd, timeoutMs) {
     return new Promise(function (resolve, reject) {
       var fn = bridgeFn();
       if (!fn) return reject(new Error('WebUI bridge not available'));
       var settled = false;
+      var cbName = '__thermalcore_cb_' + (++bridgeSeq);
       var timer = setTimeout(function () {
-        if (!settled) { settled = true; reject(new Error('command timed out')); }
-      }, 25000);
+        if (settled) return;
+        settled = true;
+        cleanup();
+        var err = new Error('command timed out');
+        err.timeout = true;
+        reject(err);
+      }, timeoutMs || 30000);
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      }
       function done(r) {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        cleanup();
         resolve(normalizeResult(r));
       }
+      window[cbName] = function (a, b, c) {
+        if (a !== null && typeof a === 'object') return done(a);
+        done({ errno: a, stdout: b, stderr: c });
+      };
       try {
-        var maybe = fn(cmd, function (a, b, c) {
-          if (a !== null && typeof a === 'object') return done(a);
-          done({ errno: a, stdout: b, stderr: c });
-        });
+        var maybe = fn(cmd, cbName);
         if (maybe && typeof maybe.then === 'function') {
           maybe.then(done, function (e) {
-            if (!settled) { settled = true; clearTimeout(timer); reject(e); }
+            if (!settled) { settled = true; cleanup(); reject(e); }
           });
         } else if (typeof maybe === 'string') {
           done({ errno: 0, stdout: maybe, stderr: '' });
@@ -202,21 +222,28 @@
           done(maybe);
         }
       } catch (e) {
-        if (!settled) { settled = true; clearTimeout(timer); reject(e); }
+        if (!settled) { settled = true; cleanup(); reject(e); }
       }
     });
   }
+  /* bridge-core:end */
 
   function shq(v) {
     return "'" + String(v == null ? '' : v).replace(/'/g, "'\\''") + "'";
   }
 
-  function runCli(args) {
+  var ACTION_TIMEOUT_MS = 60000;
+
+  function runCli(args, timeoutMs) {
     if (state.demo) return Promise.resolve({ ok: false, code: -2, out: '', err: 'preview mode' });
-    return bridgeExec(CLI + ' ' + args).then(function (r) {
+    return bridgeExec(CLI + ' ' + args, timeoutMs || 30000).then(function (r) {
       return { ok: r.code === 0, code: r.code, out: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
     }).catch(function (e) {
-      return { ok: false, code: -1, out: '', err: String((e && e.message) || e) };
+      return {
+        ok: false, code: -1, out: '',
+        err: String((e && e.message) || e),
+        timeout: !!(e && e.timeout)
+      };
     });
   }
 
@@ -258,9 +285,12 @@
   }
   function errorDialog(title, res) {
     var detail = [res && res.out, res && res.err].filter(Boolean).join('\n');
+    var timedOut = !!(res && res.timeout);
     return openModal({
       title: title,
-      body: 'No changes were kept. Details below:',
+      body: timedOut
+        ? 'The WebUI bridge did not respond in time. The command may still be running — check the Advanced log before retrying.'
+        : 'No changes were kept. Details below:',
       pre: detail || 'unknown error',
       okText: 'Close',
       hideCancel: true
@@ -289,9 +319,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.1.0'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.1.0');
-    setText('aboutVersion', mod.version || '2.1.0');
+    setText('versionChip', 'v' + (mod.version || '2.1.1'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.1.1');
+    setText('aboutVersion', mod.version || '2.1.1');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
@@ -484,14 +514,14 @@
     if (state.busy) return;
     state.busy = true;
     busyBtn(btn, true);
-    runCli('apply ' + shq(name)).then(function (res) {
+    runCli('apply ' + shq(name), ACTION_TIMEOUT_MS).then(function (res) {
       state.busy = false;
       busyBtn(btn, false);
       if (res.ok) {
         toast('Applied: ' + profileLabel(name), 'ok');
         refresh(true);
       } else {
-        errorDialog('Apply failed — rolled back', res);
+        errorDialog(res.timeout ? 'Apply timed out' : 'Apply failed — rolled back', res);
       }
     });
   }
@@ -642,9 +672,9 @@
     save.then(function (res) {
       if (!res.ok) { busyBtn(btn, false); return errorDialog('Saving custom profile failed', res); }
       if (applyAfter) {
-        return runCli('apply custom').then(function (ares) {
+        return runCli('apply custom', ACTION_TIMEOUT_MS).then(function (ares) {
           busyBtn(btn, false);
-          if (!ares.ok) return errorDialog('Custom profile apply failed — rolled back', ares);
+          if (!ares.ok) return errorDialog(ares.timeout ? 'Custom profile apply timed out' : 'Custom profile apply failed — rolled back', ares);
           toast('Custom profile saved & applied', 'ok');
           loadCustom(); refresh(true);
         });
@@ -667,7 +697,7 @@
   function doBackup(btn) {
     if (state.demo) return toast('Preview mode — no changes written.', 'warn');
     busyBtn(btn, true);
-    runCli('backup').then(function (res) {
+    runCli('backup', ACTION_TIMEOUT_MS).then(function (res) {
       busyBtn(btn, false);
       if (!res.ok) return errorDialog('Backup failed', res);
       toast(res.out || 'Backup created', 'ok');
@@ -684,7 +714,7 @@
     confirmDialog(title, body, kind === 'factory' ? 'Restore factory' : 'Restore', true).then(function (ok) {
       if (!ok) return;
       busyBtn(btn, true);
-      runCli(kind === 'factory' ? 'restore --factory' : 'restore').then(function (res) {
+      runCli(kind === 'factory' ? 'restore --factory' : 'restore', ACTION_TIMEOUT_MS).then(function (res) {
         busyBtn(btn, false);
         if (!res.ok) return errorDialog('Restore failed', res);
         toast('Restore completed', 'ok');

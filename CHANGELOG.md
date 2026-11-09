@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.1.1] - 2026-11-09
+
+### Fixes
+- WebUI bridge compatibility with KernelSU, KernelSU-Next, APatch and MMRL: async `exec` now receives a global callback name instead of a function object. This is the root cause of the false "Apply failed — rolled back / command timed out" dialog after ~25 seconds.
+- Apply, backup, restore, custom profile and config actions receive their real exit code, stdout and stderr again instead of waiting forever for a callback that never ran.
+- Separate timeout budgets: actions get 60s, status and log polling 30s. A real timeout is reported as a timeout and no longer claims the module rolled back.
+- The WebUI recovers live telemetry instead of silently staying on demo values when the bridge is slow.
+
+### Notes
+- No kernel or thermal behaviour changed from 2.1.0; this is a WebUI reliability hotfix.
+- Update in place from the manager or flash over 2.1.0, then reboot.
+
 ## [v2.1.0] - 2026-11-08
 
 ### Highlights

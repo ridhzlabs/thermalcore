@@ -1,7 +1,7 @@
 id=thermal-core
 name=ThermalCore
-version=2.1.0
-versionCode=3
+version=2.1.1
+versionCode=1794226492
 author=ridhzxlabs
 description=Universal thermal & power core — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback. Works on any chipset. By ridhzxlabs.
 banner=banner.jpg
