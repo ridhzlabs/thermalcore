@@ -58,6 +58,7 @@ VM_VFS_CACHE_PRESSURE=-1
 VM_DIRTY_RATIO=-1
 VM_DIRTY_BACKGROUND_RATIO=-1
 VM_COMPACTION_PROACTIVENESS=-1
+VM_WATERMARK_BOOST_FACTOR=-1
 SUGOV_UP_RATE_LIMIT_US=-1
 SUGOV_DOWN_RATE_LIMIT_US=-1
 EOF
@@ -92,6 +93,7 @@ load_profile() {
   P_IO_SCHEDULER=auto; P_IO_READ_AHEAD_KB=-1
   P_VM_SWAPPINESS=-1; P_VM_VFS_CACHE_PRESSURE=-1
   P_VM_DIRTY_RATIO=-1; P_VM_DIRTY_BACKGROUND_RATIO=-1; P_VM_COMPACTION_PROACTIVENESS=-1
+  P_VM_WATERMARK_BOOST_FACTOR=-1
   P_SUGOV_UP_RATE_LIMIT_US=-1; P_SUGOV_DOWN_RATE_LIMIT_US=-1
 
   while IFS='=' read -r _k _v || [ -n "$_k" ]; do
@@ -113,6 +115,7 @@ load_profile() {
       VM_DIRTY_RATIO) P_VM_DIRTY_RATIO="$_v" ;;
       VM_DIRTY_BACKGROUND_RATIO) P_VM_DIRTY_BACKGROUND_RATIO="$_v" ;;
       VM_COMPACTION_PROACTIVENESS) P_VM_COMPACTION_PROACTIVENESS="$_v" ;;
+      VM_WATERMARK_BOOST_FACTOR) P_VM_WATERMARK_BOOST_FACTOR="$_v" ;;
       SUGOV_UP_RATE_LIMIT_US) P_SUGOV_UP_RATE_LIMIT_US="$_v" ;;
       SUGOV_DOWN_RATE_LIMIT_US) P_SUGOV_DOWN_RATE_LIMIT_US="$_v" ;;
       *) ;; # unknown keys ignored (forward compatible)
@@ -462,6 +465,7 @@ apply_vm() {
   _vm_set dirty_ratio "$P_VM_DIRTY_RATIO" 1 100
   _vm_set dirty_background_ratio "$P_VM_DIRTY_BACKGROUND_RATIO" 1 100
   _vm_set compaction_proactiveness "$P_VM_COMPACTION_PROACTIVENESS" 0 100
+  _vm_set watermark_boost_factor "$P_VM_WATERMARK_BOOST_FACTOR" 0 1000000
 }
 
 # ---------------------------------------------------------------------------

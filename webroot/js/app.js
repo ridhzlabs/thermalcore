@@ -10,24 +10,24 @@
 
   var PROFILES = {
     battery_saver: {
-      label: 'Battery Saver', tag: 'Maximum endurance',
-      desc: 'Caps CPU and GPU clocks and biases the governor towards power saving. Built-in thermal protection stays untouched.',
-      tags: ['cpu ≤66%', 'gpu ≤50%', 'powersave']
+      label: 'Battery Saver', tag: 'Endurance, no stutter',
+      desc: 'Keeps vendor smart governors, gently caps CPU/GPU clocks and trims background memory churn. Notifications and Doze behaviour are untouched.',
+      tags: ['cpu ≤75%', 'gpu ≤60%', 'no boost churn']
     },
     balanced: {
-      label: 'Balanced', tag: 'Everyday default',
-      desc: 'Vendor-optimal behaviour: full clocks restored, schedutil-family governor, no I/O or VM meddling.',
-      tags: ['full clocks', 'schedutil', 'stock-like']
+      label: 'Balanced', tag: 'Everyday, battery-lean',
+      desc: 'Vendor smart governors with gentle 95%/90% clock caps, lean writeback and no watermark boost. Feels full-speed, drains less.',
+      tags: ['cpu ≤95%', 'gpu ≤90%', 'lean VM']
     },
     performance: {
       label: 'Performance', tag: 'Maximum responsiveness',
-      desc: 'Performance governor, full CPU/GPU clocks, low-latency I/O scheduler and reduced swap tendency.',
-      tags: ['performance', 'low latency', '100%']
+      desc: 'Performance governor, full clocks and low-latency I/O. Only background boost churn is trimmed, so a little battery is saved for free.',
+      tags: ['full clocks', 'low latency', 'boost trimmed']
     },
     gaming: {
       label: 'Gaming', tag: 'Sustained FPS',
-      desc: 'Performance governor plus a raised GPU frequency floor for stable frame pacing, minimal I/O latency and no swap stutter.',
-      tags: ['gpu floor 30%', 'kyber', 'low swap']
+      desc: 'Performance governor, raised GPU floor and low-latency I/O for stable frame pacing. Background boost churn is trimmed to save a little battery.',
+      tags: ['gpu floor 30%', 'kyber', 'boost trimmed']
     },
     custom: {
       label: 'Custom', tag: 'Your own tuning',
@@ -58,13 +58,14 @@
     ['c_vm_dirty', 'VM_DIRTY_RATIO', 'int'],
     ['c_vm_dirtybg', 'VM_DIRTY_BACKGROUND_RATIO', 'int'],
     ['c_vm_compact', 'VM_COMPACTION_PROACTIVENESS', 'int'],
+    ['c_vm_wboost', 'VM_WATERMARK_BOOST_FACTOR', 'int'],
     ['c_sugov_up', 'SUGOV_UP_RATE_LIMIT_US', 'int'],
     ['c_sugov_down', 'SUGOV_DOWN_RATE_LIMIT_US', 'int']
   ];
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.1.1', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.2.0', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
@@ -319,9 +320,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.1.1'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.1.1');
-    setText('aboutVersion', mod.version || '2.1.1');
+    setText('versionChip', 'v' + (mod.version || '2.2.0'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.2.0');
+    setText('aboutVersion', mod.version || '2.2.0');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';

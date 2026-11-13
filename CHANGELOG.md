@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.2.0] - 2026-11-09
+
+### Battery efficiency pass
+- `battery_saver`: vendor smart governors kept (no more `powersave` stutter), caps eased to 75% CPU / 60% GPU, 256 KB read-ahead, proactive compaction off and watermark boost disabled - endurance without lag or extra heat.
+- `balanced`: gentle 95% CPU / 90% GPU caps, 256 KB read-ahead, lean writeback (dirty 20/5, vfs pressure 80) and watermark boost disabled - full-speed feel, lower drain.
+- `performance` / `gaming`: full clocks, floors and low-latency I/O unchanged; only watermark boost churn is disabled, which trims background power for free.
+- New tunable `VM_WATERMARK_BOOST_FACTOR` (0-1000000, -1 = keep) in `custom.conf` and the WebUI custom tab.
+- Notifications, Doze, sync and wakelock behaviour are untouched - all changes are kernel sysfs only, so nothing heats up beyond normal caps.
+
+### Notes
+- Update in place from the manager or flash over 2.1.1, then reboot.
+
 ## [v2.1.1] - 2026-11-09
 
 ### Fixes
