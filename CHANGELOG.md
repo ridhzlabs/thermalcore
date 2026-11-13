@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.2.1] - 2026-11-13
+
+### Dynamic module description badge
+- The root manager (KernelSU / APatch / MMRL) now shows the **active profile** in the module description with an emoji badge: ✅ Balanced, 🔋 Battery Saver, 🚀 Performance, 🎮 Gaming, 🛠️ Custom - plus clock caps and daemon state.
+- The badge updates automatically on every profile apply (manual, WebUI, post-boot restore and thermal-guard recovery) - no reboot needed, just refresh the module page.
+
+### Notes
+- Update in place from the manager or flash over 2.2.0, then reboot once.
+
 ## [v2.2.0] - 2026-11-09
 
 ### Battery efficiency pass

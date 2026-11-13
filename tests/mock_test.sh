@@ -130,7 +130,7 @@ processor\t: 0"
   mkdir -p "$MOCK/data/adb/ksu" 2>/dev/null
 }
 
-run_tc() { "$TC" "$@" 2>&1; }
+run_tc() { THERMALCORE_NO_DESC_SYNC=1 "$TC" "$@" 2>&1; }
 
 # ---------------------------------------------------------------------------
 section "build mock environment"
@@ -289,6 +289,22 @@ $TC profiles | grep -q '\* custom' || $TC profiles | grep -q '\* balanced' || $T
   && ok "profiles marks active" || bad "profiles output"
 $TC doctor >/dev/null 2>&1; DR=$?
 [ "$DR" -eq 0 ] && ok "doctor rc=0" || bad "doctor rc=$DR"
+
+# ---------------------------------------------------------------------------
+section "module.prop description shows active profile"
+_dsync="$DATA/descsync"
+rm -rf "$_dsync"
+mkdir -p "$_dsync/bin" "$_dsync/lib" "$_dsync/profiles"
+cp "$REPO/bin/thermalcore" "$_dsync/bin/"
+cp "$REPO"/lib/*.sh "$_dsync/lib/"
+cp "$REPO"/profiles/*.conf "$_dsync/profiles/"
+cp "$REPO/module.prop" "$_dsync/"
+THERMALCORE_MODDIR="$_dsync" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" "$TC" apply gaming >/dev/null 2>&1
+grep -q '🎮 Gaming' "$_dsync/module.prop" && ok "desc shows gaming" || bad "desc shows gaming"
+THERMALCORE_MODDIR="$_dsync" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" "$TC" apply battery_saver >/dev/null 2>&1
+grep -q '🔋 Battery Saver' "$_dsync/module.prop" && ok "desc shows battery saver" || bad "desc shows battery saver"
+grep -q '^description=\[' "$_dsync/module.prop" && ok "desc keeps prefix format" || bad "desc keeps prefix format"
+THERMALCORE_NO_DESC_SYNC=1 "$TC" config set CURRENT_PROFILE balanced >/dev/null 2>&1
 
 printf '\n== summary ==\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

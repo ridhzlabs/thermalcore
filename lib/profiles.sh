@@ -521,5 +521,6 @@ apply_profile() {
 
   config_set CURRENT_PROFILE "$_ap_name"
   log "apply_profile: applied '$_ap_name' (warn=$APPLY_WARN)"
+  command -v module_prop_set_status >/dev/null 2>&1 && module_prop_set_status >/dev/null 2>&1
   return 0
 }

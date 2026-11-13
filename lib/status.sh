@@ -459,7 +459,7 @@ status_json() {
   fi
   is_uint "$_sdk" || _sdk=0
 
-  json_escape_val "${_modver:-2.2.0}"; _jv_modver="$_JE"
+  json_escape_val "${_modver:-2.2.1}"; _jv_modver="$_JE"
   json_escape_val "$_learning"; _jv_learning="$_JE"
   json_escape_val "$_debug"; _jv_debug="$_JE"
   json_escape_val "${_last_backup:-none}"; _jv_backup="$_JE"
@@ -527,16 +527,26 @@ EOF
 # module_prop_set_status - rewrite description line with run state
 # ---------------------------------------------------------------------------
 module_prop_set_status() {
+  [ -n "$THERMALCORE_NO_DESC_SYNC" ] && return 1
   _mp="$THERMALCORE_MODDIR/module.prop"
   [ -f "$_mp" ] || return 1
+  _mp_orig_desc="Universal thermal & power core by ridhzxlabs — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback."
+  _mp_prof="$(config_get CURRENT_PROFILE 2>/dev/null)"
+  case "$_mp_prof" in
+    battery_saver) _mp_state='🔋 Battery Saver · CPU ≤75% · GPU ≤60%' ;;
+    performance)   _mp_state='🚀 Performance · full clocks · low latency' ;;
+    gaming)        _mp_state='🎮 Gaming · GPU floor · sustained caps' ;;
+    custom)        _mp_state='🛠️ Custom · tuned from the WebUI' ;;
+    *)             _mp_state='✅ Balanced · CPU ≤95% · GPU ≤90%' ;;
+  esac
   _mp_pid="$(pidof thermal-cored 2>/dev/null | awk '{print $1}')"
-  _mp_orig_desc="Intelligent thermal & power management by ridhzxlabs — adaptive profiles, dynamic hardware detection, safe rollback, WebUI. Includes ThermalCore AI thermal engine."
   if [ -n "$_mp_pid" ]; then
-    _mp_desc="[Running · PID $_mp_pid] $_mp_orig_desc"
+    _mp_state="$_mp_state · running"
   else
-    _mp_desc="[Daemon stopped] $_mp_orig_desc"
+    _mp_state="$_mp_state · daemon off"
   fi
   # escape sed replacement delimiters & ampersands
+  _mp_desc="[$_mp_state] $_mp_orig_desc"
   _mp_desc="$(printf '%s' "$_mp_desc" | sed -e 's/[&\\/]/\\&/g')"
   sed -i "s/^description=.*/description=${_mp_desc}/" "$_mp" 2>/dev/null
 }

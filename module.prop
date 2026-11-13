@@ -1,8 +1,8 @@
 id=thermal-core
 name=ThermalCore
-version=2.2.0
-versionCode=1794575210
+version=2.2.1
+versionCode=1794576160
 author=ridhzxlabs
-description=Universal thermal & power core — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback. Works on any chipset. By ridhzxlabs.
+description=[🚀 Performance · full clocks · low latency · running] Universal thermal & power core by ridhzxlabs — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback.
 banner=banner.jpg
 updateJson=https://raw.githubusercontent.com/ridhzlabs/thermalcore/main/update.json
