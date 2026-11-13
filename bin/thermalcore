@@ -122,8 +122,8 @@ cmd_profiles() {
     _mark=" "; [ "$_p" = "$_cur" ] && _mark="*"
     _desc=""
     case "$_p" in
-      battery_saver) _desc="max battery, capped clocks" ;;
-      balanced)      _desc="vendor default, full clocks" ;;
+      battery_saver) _desc="max endurance, no-stutter caps" ;;
+      balanced)      _desc="daily default, battery-lean caps" ;;
       performance)   _desc="max responsiveness, performance governor" ;;
       gaming)        _desc="performance + locked-ish GPU floor, low I/O latency" ;;
       custom)        _desc="your own values (WebUI / custom.conf)" ;;
@@ -181,6 +181,9 @@ custom_key_valid() {
     VM_COMPACTION_PROACTIVENESS)
       [ "$_v" = "-1" ] && return 0
       is_uint "$_v" && [ "$_v" -le 100 ] ;;
+    VM_WATERMARK_BOOST_FACTOR)
+      [ "$_v" = "-1" ] && return 0
+      is_uint "$_v" && [ "$_v" -le 1000000 ] ;;
     SUGOV_UP_RATE_LIMIT_US|SUGOV_DOWN_RATE_LIMIT_US)
       [ "$_v" = "-1" ] && return 0
       is_uint "$_v" && [ "$_v" -ge 10 ] && [ "$_v" -le 10000 ] ;;

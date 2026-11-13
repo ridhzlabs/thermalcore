@@ -113,6 +113,7 @@ build_mock() {
   wf "$MOCK/proc/sys/vm/dirty_ratio" 20
   wf "$MOCK/proc/sys/vm/dirty_background_ratio" 5
   wf "$MOCK/proc/sys/vm/compaction_proactiveness" 0
+  wf "$MOCK/proc/sys/vm/watermark_boost_factor" 100000
 
   # --- procfs --------------------------------------------------------------
   wf "$MOCK/proc/stat" "cpu  100 0 100 800 0 0 0 0 0 0
@@ -183,9 +184,10 @@ OUT="$(run_tc apply balanced)"; RC=$?
 eq "apply balanced rc" "$RC" 0
 has "balanced output" "$OUT" "applied: balanced"
 eq "balanced cpu gov kept" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_governor")" sugov_ext
-eq "balanced cpu max" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq")" 2000000
+eq "balanced cpu max 95%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq")" 1900000
 eq "balanced gpu gov kept" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/governor")" dummy
-eq "balanced gpu max" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 800000000
+eq "balanced gpu max 90%" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 700000000
+eq "balanced watermark boost off" "$(rf "$MOCK/proc/sys/vm/watermark_boost_factor")" 0
 
 # ---------------------------------------------------------------------------
 section "performance apply"
@@ -221,13 +223,14 @@ eq "restored cpu4 max" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy4/scali
 section "battery saver apply + restore base"
 OUT="$(run_tc apply battery_saver)"; RC=$?
 eq "apply battery_saver rc" "$RC" 0
-eq "saver cpu0 gov" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_governor")" powersave
-eq "saver cpu0 max 66%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq")" 1300000
-eq "saver cpu4 max 66%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq")" 1400000
-eq "saver gpu gov" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/governor")" powersave
-eq "saver gpu max 50%" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 400000000
+eq "saver cpu0 gov kept" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_governor")" sugov_ext
+eq "saver cpu0 max 75%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq")" 1500000
+eq "saver cpu4 max 75%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq")" 1800000
+eq "saver gpu gov smart" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/governor")" simple_ondemand
+eq "saver gpu max 60%" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 400000000
 eq "saver swappiness" "$(rf "$MOCK/proc/sys/vm/swappiness")" 60
 eq "saver vfs" "$(rf "$MOCK/proc/sys/vm/vfs_cache_pressure")" 50
+eq "saver watermark boost off" "$(rf "$MOCK/proc/sys/vm/watermark_boost_factor")" 0
 $TC restore base >/dev/null 2>&1 && ok "restore base" || bad "restore base"
 eq "base cpu0 gov" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_governor")" sugov_ext
 eq "base cpu0 max" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq")" 2000000
@@ -236,6 +239,7 @@ eq "base gpu gov" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/governor")" dummy
 eq "base gpu max" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 800000000
 eq "base gpu min" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/min_freq")" 200000000
 eq "base swappiness" "$(rf "$MOCK/proc/sys/vm/swappiness")" 100
+eq "base watermark boost" "$(rf "$MOCK/proc/sys/vm/watermark_boost_factor")" 100000
 eq "base scheduler" "$(rf "$MOCK/sys/block/sda/queue/scheduler")" mq-deadline
 eq "base read_ahead" "$(rf "$MOCK/sys/block/sda/queue/read_ahead_kb")" 128
 eq "base profile pointer" "$($TC config get CURRENT_PROFILE)" balanced
