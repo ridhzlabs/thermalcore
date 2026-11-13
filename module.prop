@@ -3,6 +3,6 @@ name=ThermalCore
 version=2.2.1
 versionCode=1794576160
 author=ridhzxlabs
-description=[🚀 Performance · full clocks · low latency · running] Universal thermal & power core by ridhzxlabs — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback.
+description=Universal thermal & power core — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback. Module description shows the active profile after apply: ✅ Balanced / 🔋 Battery Saver / 🚀 Performance / 🎮 Gaming. By ridhzxlabs.
 banner=banner.jpg
 updateJson=https://raw.githubusercontent.com/ridhzlabs/thermalcore/main/update.json

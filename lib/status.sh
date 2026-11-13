@@ -530,6 +530,8 @@ module_prop_set_status() {
   [ -n "$THERMALCORE_NO_DESC_SYNC" ] && return 1
   _mp="$THERMALCORE_MODDIR/module.prop"
   [ -f "$_mp" ] || return 1
+  # only a real install keeps the pristine module.prop.orig copy from customize.sh
+  [ -f "$THERMALCORE_MODDIR/module.prop.orig" ] || return 1
   _mp_orig_desc="Universal thermal & power core by ridhzxlabs — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback."
   _mp_prof="$(config_get CURRENT_PROFILE 2>/dev/null)"
   case "$_mp_prof" in
