@@ -258,7 +258,7 @@ $TC restore base >/dev/null 2>&1
 
 # ---------------------------------------------------------------------------
 section "thermal guard: trigger, mitigate, recover"
-$TC apply performance >/dev/null 2>&1
+THERMALCORE_NO_DESC_SYNC=1 "$TC" apply performance >/dev/null 2>&1
 $TC config set THERMAL_GUARD_BATTERY_MAX_C 38 >/dev/null 2>&1
 $TC config set THERMAL_GUARD_INTERVAL 10 >/dev/null 2>&1
 $TC guard start >/dev/null 2>&1
