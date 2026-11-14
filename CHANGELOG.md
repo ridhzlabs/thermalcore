@@ -2,7 +2,7 @@
 
 ## [v2.3.1] - 2026-11-14
 
-### Material You refinements (HMA-OSS style)
+### Material You refinements
 - Cards are now borderless elevated surfaces with the signature 30dp corner radius; dialogs use 24dp.
 - Top app bar blends into the background like native Material You apps; the navigation bar sits on the base surface.
 - Section labels follow the Android Settings group style (primary-coloured group titles).
