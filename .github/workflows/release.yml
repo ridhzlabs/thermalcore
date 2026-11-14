@@ -2,18 +2,20 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag to release (e.g. v2.2.0)"
-        required: true
+        description: "Version tag to release (e.g. v2.2.0, tag flow only)"
+        required: false
 
 permissions:
   contents: write
 
 jobs:
   guard:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     outputs:
       ok: ${{ steps.check.outputs.ok }}
@@ -82,6 +84,83 @@ jobs:
           body_path: dist/notes.md
           files: dist/ThermalCore-${{ steps.meta.outputs.version }}.zip
           fail_on_unmatched_files: true
+
+  # Automatic release from main: every push that bumps module.prop creates or
+  # updates the GitHub release for that version (asset + notes + manifest).
+  auto-release:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: update manifest'))
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve version
+        id: meta
+        run: |
+          VERSION="$(sed -n 's/^version=//p' module.prop | head -n1)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build release zip
+        run: |
+          python3 scripts/build_zip.py             --version "${{ steps.meta.outputs.version }}"             --version-code "${{ steps.meta.outputs.version_code }}"             --out "dist/ThermalCore-${{ steps.meta.outputs.version }}.zip"
+
+      - name: Extract release notes
+        run: |
+          python3 scripts/changelog_extract.py "${{ steps.meta.outputs.version }}" > dist/notes.md || true
+          if [ ! -s dist/notes.md ]; then
+            echo "Release v${{ steps.meta.outputs.version }}" > dist/notes.md
+            git log -1 --pretty=%B >> dist/notes.md
+          fi
+
+      - name: Publish or update release
+        id: pub
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          ZIP="dist/ThermalCore-$VERSION.zip"
+          ASSET="ThermalCore-$VERSION.zip"
+          TAG="v$VERSION"
+          REPO="ridhzlabs/thermalcore"
+          NEW_SHA="$(sha256sum "$ZIP" | cut -d' ' -f1)"
+          if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+            OLD_SHA="$(curl -sL "https://github.com/$REPO/releases/download/$TAG/$ASSET" | sha256sum | cut -d' ' -f1)"
+            if [ "$OLD_SHA" != "$NEW_SHA" ]; then
+              gh release upload "$TAG" "$ZIP" --clobber -R "$REPO"
+              echo "asset_changed=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::Release $TAG updated: asset replaced."
+            else
+              echo "::notice::Release $TAG asset unchanged."
+            fi
+            gh release edit "$TAG" --notes-file dist/notes.md --title "ThermalCore v$VERSION" -R "$REPO"
+          else
+            gh release create "$TAG" "$ZIP" --title "ThermalCore v$VERSION" --notes-file dist/notes.md --latest -R "$REPO"
+            echo "asset_changed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release $TAG created."
+          fi
+
+      - name: Refresh manifest
+        if: steps.pub.outputs.asset_changed == 'true'
+        run: |
+          python3 scripts/write_update_json.py             --version "${{ steps.meta.outputs.version }}"             --version-code "${{ steps.meta.outputs.version_code }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: update manifest for v${{ steps.meta.outputs.version }}"
+          git push origin main
 
   manifest:
     needs: release

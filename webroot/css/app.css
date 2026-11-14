@@ -52,7 +52,7 @@
   --elev-3: 0 4px 16px rgba(0, 0, 0, 0.38);
 
   --header-h: 64px;
-  --nav-h: 74px;
+  --nav-h: 90px;
   --m3-ease: cubic-bezier(0.2, 0, 0, 1);
   --m3-ease-emph: cubic-bezier(0.05, 0.7, 0.1, 1);
 
@@ -166,15 +166,18 @@ body {
 /* ---------------- navigation bar (M3) ---------------- */
 .tabs {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 20px);
   z-index: 50;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2px;
-  padding: 8px 6px calc(10px + env(safe-area-inset-bottom, 0px));
-  background: var(--surface);
+  grid-template-columns: repeat(5, auto);
+  padding: 6px;
+  background: var(--surface-container-high);
+  border-radius: 999px;
+  box-shadow: var(--elev-2);
 }
 
 .tab {
@@ -188,11 +191,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 4px;
-  border-radius: var(--radius-sm);
+  gap: 3px;
+  padding: 8px 12px;
+  border-radius: 999px;
   cursor: pointer;
   position: relative;
+  z-index: 1;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.2s var(--m3-ease);
@@ -206,33 +210,37 @@ body {
 }
 .tab span { position: relative; z-index: 1; }
 
-/* pill indicator behind the icon */
-.tab::before {
-  content: "";
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  width: 56px;
-  height: 32px;
-  border-radius: 16px;
-  background: var(--secondary-container);
-  transform: translateX(-50%) scaleX(0.4);
-  opacity: 0;
-  transition: transform 0.28s var(--m3-ease-emph), opacity 0.18s var(--m3-ease);
-}
 .tab.active { color: var(--on-secondary-container); }
-.tab.active::before { transform: translateX(-50%) scaleX(1); opacity: 1; }
 .tab.active svg { transform: scale(1.06); }
 .tab:active svg { transform: scale(0.9); }
+
+/* sliding indicator (JS-positioned, transform/opacity only) */
+.nav-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--secondary-container);
+  transition: transform 0.32s var(--m3-ease-emph), width 0.32s var(--m3-ease-emph);
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 360px) {
+  .tab { padding: 8px 9px; font-size: 10.5px; }
+  .tab svg { width: 20px; height: 20px; }
+}
 
 @media (min-width: 900px) {
   .tabs {
     position: sticky;
-    top: var(--header-h);
+    top: calc(var(--header-h) + 10px);
     grid-template-columns: repeat(5, auto);
     justify-content: center;
-    padding: 8px 16px;
-    background: rgba(23, 18, 16, 0.97);
+    padding: 6px;
+    background: var(--surface-container-high);
   }
   .tab {
     flex-direction: row;
@@ -242,8 +250,6 @@ body {
     border-radius: 999px;
   }
   .tab svg { width: 18px; height: 18px; }
-  .tab::before { inset: 4px; width: auto; height: auto; border-radius: 999px; top: 4px; left: 0; transform: scale(0.6); }
-  .tab.active::before { transform: scale(1); }
 }
 
 /* ---------------- layout ---------------- */

@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.3.2] - 2026-11-14
+
+### Floating navigation bar
+- The navigation bar now floats detached from the screen edge as a centered pill (solid tonal surface, no blur) in the iOS-style floating position while staying Material 3.
+- Fixed the buggy tab indicator: it is now a single JS-positioned pill that slides smoothly between tabs (transform/opacity only), with instant placement on load and resize.
+
+### Automatic releases
+- Every push to main now creates or updates the GitHub release for the current module.prop version automatically (asset, notes and update.json manifest), so shipping a change needs nothing more than a commit.
+
+### Notes
+- Update in place from the manager or flash over 2.3.1, then reboot once.
+
 ## [v2.3.1] - 2026-11-14
 
 ### Material You refinements
