@@ -1,5 +1,16 @@
 # Changelog
 
+## [v2.3.1] - 2026-11-14
+
+### Material You refinements (HMA-OSS style)
+- Cards are now borderless elevated surfaces with the signature 30dp corner radius; dialogs use 24dp.
+- Top app bar blends into the background like native Material You apps; the navigation bar sits on the base surface.
+- Section labels follow the Android Settings group style (primary-coloured group titles).
+- Settings rows are full M3 list rows: leading icon in a tonal circle, no divider lines, 56dp minimum height.
+
+### Notes
+- Update in place from the manager or flash over 2.3.0, then reboot once.
+
 ## [v2.3.0] - 2026-11-14
 
 ### Material You WebUI

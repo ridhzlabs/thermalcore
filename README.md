@@ -102,7 +102,7 @@ Root cause: this ROM's `/system/bin/sh` has no `printf` builtin, so every `print
 Requirements: Python 3 (stdlib only), Git.
 
 ```sh
-python3 scripts/build_zip.py --out dist/ThermalCore-2.3.0.zip
+python3 scripts/build_zip.py --out dist/ThermalCore-2.3.1.zip
 ```
 
 The script packages exactly the module payload, sets executable modes, embeds the installer checksums and optionally overrides version metadata:

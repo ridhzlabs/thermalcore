@@ -341,9 +341,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.3.0'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.3.0');
-    setText('aboutVersion', mod.version || '2.3.0');
+    setText('versionChip', 'v' + (mod.version || '2.3.1'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.3.1');
+    setText('aboutVersion', mod.version || '2.3.1');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
