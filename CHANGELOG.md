@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.3.0] - 2026-11-14
+
+### Material You WebUI
+- Full Material 3 redesign: tonal surface palette (warm-orange seed), 24px rounded cards, pill navigation bar with animated indicator, M3 switches and sliders (vertical-bar handle), pill buttons and snackbar-style toasts.
+- Profile-aware dynamic tint: the dashboard hero and profile cards adopt the color of the active profile (green battery saver, orange performance, red gaming...).
+- Smoother and lighter at the same time: backdrop blur removed everywhere, all motion is transform/opacity only, subtle ripple feedback, reduced-motion respected.
+
+### Notes
+- Update in place from the manager or flash over 2.2.1, then reboot once.
+
 ## [v2.2.1] - 2026-11-13
 
 ### Dynamic module description badge

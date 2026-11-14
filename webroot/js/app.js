@@ -298,6 +298,27 @@
     });
   }
 
+  /* ---------------- M3 ripple (compositor-only) ---------------- */
+  function initRipple() {
+    var reduce = false;
+    try { reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (reduce) return;
+    document.addEventListener('pointerdown', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('.btn, .tab') : null;
+      if (!t || t.disabled) return;
+      var r = t.getBoundingClientRect();
+      if (!r.width) return;
+      var d = Math.max(r.width, r.height) * 1.9;
+      var s = document.createElement('span');
+      s.className = 'ripple';
+      s.style.width = s.style.height = d + 'px';
+      s.style.left = (e.clientX - r.left - d / 2) + 'px';
+      s.style.top = (e.clientY - r.top - d / 2) + 'px';
+      t.appendChild(s);
+      setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 550);
+    }, { passive: true });
+  }
+
   /* ---------------- tabs ---------------- */
   function switchTab(name) {
     if (!name || !el('tab-' + name)) name = 'dashboard';
@@ -320,12 +341,14 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.2.1'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.2.1');
-    setText('aboutVersion', mod.version || '2.2.1');
+    setText('versionChip', 'v' + (mod.version || '2.3.0'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.3.0');
+    setText('aboutVersion', mod.version || '2.3.0');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
+    var heroCard = document.querySelector('.card-hero');
+    if (heroCard) heroCard.setAttribute('data-profile', profile);
     setText('profileBadge', profileLabel(profile));
     setText('profileName', profileLabel(profile));
     setText('profileDesc', profileDesc(profile));
@@ -879,6 +902,7 @@
   function init() {
     buildProfiles();
     bind();
+    initRipple();
 
     var initialTab = location.hash ? location.hash.slice(1) : 'dashboard';
     switchTab(initialTab);
