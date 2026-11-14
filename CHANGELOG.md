@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.3.3] - 2026-11-14
+
+### Navigation bar hardening
+- The sliding tab indicator is now driven purely by CSS (one transform per tab index, fixed cell width): no measuring, no resize handling and no width animation, so it can no longer misplace, stretch or escape the bar while switching tabs or during viewport changes.
+- Tabs now use equal-width cells so the indicator stays perfectly aligned on any screen width.
+- Safe-area offsets for the navigation bar, page padding and toasts now fall back to plain pixel values if the WebView does not support safe-area insets, keeping every fixed element pinned to the correct spot.
+
+### Notes
+- Update in place from the manager or flash over 2.3.2, then reboot once.
+
 ## [v2.3.2] - 2026-11-14
 
 ### Floating navigation bar

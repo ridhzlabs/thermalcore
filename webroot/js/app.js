@@ -320,16 +320,12 @@
   }
 
   /* ---------------- tabs ---------------- */
-  function slideNav(instant) {
-    var bar = el('tabbar'), ind = document.querySelector('.nav-indicator'),
-      act = bar && bar.querySelector('.tab.active');
-    if (!bar || !ind || !act) return;
-    var br = bar.getBoundingClientRect(), ar = act.getBoundingClientRect();
-    if (!ar.width) return;
-    if (instant) ind.style.transition = 'none';
-    ind.style.width = ar.width + 'px';
-    ind.style.transform = 'translateX(' + (ar.left - br.left) + 'px)';
-    if (instant) { void ind.offsetWidth; ind.style.transition = ''; }
+  function updateNav() {
+    var bar = el('tabbar');
+    if (!bar) return;
+    var act = bar.querySelector('.tab.active');
+    var i = $$('.tab', bar).indexOf(act);
+    if (i >= 0) bar.style.setProperty('--tab-i', String(i));
   }
   function switchTab(name) {
     if (!name || !el('tab-' + name)) name = 'dashboard';
@@ -338,7 +334,7 @@
     $$('.tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === 'tab-' + name); });
     try { history.replaceState(null, '', '#' + name); } catch (e) { /* ignore */ }
     window.scrollTo(0, 0);
-    slideNav(false);
+    updateNav();
     if (name === 'custom') loadCustom();
     if (name === 'advanced') { refreshLog(); }
     if (name === 'settings' || name === 'dashboard') render(state.status);
@@ -353,9 +349,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.3.2'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.3.2');
-    setText('aboutVersion', mod.version || '2.3.2');
+    setText('versionChip', 'v' + (mod.version || '2.3.3'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.3.3');
+    setText('aboutVersion', mod.version || '2.3.3');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
@@ -915,8 +911,7 @@
     buildProfiles();
     bind();
     initRipple();
-    slideNav(true);
-    window.addEventListener('resize', function () { slideNav(true); });
+    updateNav();
 
     var initialTab = location.hash ? location.hash.slice(1) : 'dashboard';
     switchTab(initialTab);

@@ -1,7 +1,7 @@
 id=thermal-core
 name=ThermalCore
-version=2.3.2
-versionCode=1794669830
+version=2.3.3
+versionCode=1794669840
 author=ridhzxlabs
 description=Universal thermal & power core — AI engine, adaptive profiles, live WebUI, thermal guard, auto-rollback. Module description shows the active profile after apply: ✅ Balanced / 🔋 Battery Saver / 🚀 Performance / 🎮 Gaming. By ridhzxlabs.
 banner=banner.jpg

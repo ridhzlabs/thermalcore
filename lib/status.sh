@@ -459,7 +459,7 @@ status_json() {
   fi
   is_uint "$_sdk" || _sdk=0
 
-  json_escape_val "${_modver:-2.3.2}"; _jv_modver="$_JE"
+  json_escape_val "${_modver:-2.3.3}"; _jv_modver="$_JE"
   json_escape_val "$_learning"; _jv_learning="$_JE"
   json_escape_val "$_debug"; _jv_debug="$_JE"
   json_escape_val "${_last_backup:-none}"; _jv_backup="$_JE"

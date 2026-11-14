@@ -76,6 +76,7 @@ html, body {
 }
 
 body {
+  padding-bottom: calc(var(--nav-h) + 12px);
   padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
 }
 
@@ -166,18 +167,19 @@ body {
 /* ---------------- navigation bar (M3) ---------------- */
 .tabs {
   position: fixed;
+  bottom: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  width: max-content;
-  max-width: calc(100vw - 20px);
+  width: min(100vw - 20px, 420px);
   z-index: 50;
   display: grid;
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(5, 1fr);
   padding: 6px;
   background: var(--surface-container-high);
   border-radius: 999px;
   box-shadow: var(--elev-2);
+  overflow: hidden;
 }
 
 .tab {
@@ -208,40 +210,34 @@ body {
   position: relative; z-index: 1;
   transition: transform 0.25s var(--m3-ease-emph);
 }
-.tab span { position: relative; z-index: 1; }
+.tab span { position: relative; z-index: 1; white-space: nowrap; }
 
 .tab.active { color: var(--on-secondary-container); }
 .tab.active svg { transform: scale(1.06); }
 .tab:active svg { transform: scale(0.9); }
 
-/* sliding indicator (JS-positioned, transform/opacity only) */
+/* sliding indicator — pure CSS, driven by --tab-i (0-4), transform only */
 .nav-indicator {
   position: absolute;
   top: 6px;
   bottom: 6px;
-  left: 0;
-  width: 0;
+  left: 6px;
+  width: calc((100% - 12px) / 5);
   border-radius: 999px;
   background: var(--secondary-container);
-  transition: transform 0.32s var(--m3-ease-emph), width 0.32s var(--m3-ease-emph);
+  transform: translateX(calc(var(--tab-i, 0) * 100%));
+  transition: transform 0.32s var(--m3-ease-emph);
   z-index: 0;
   pointer-events: none;
 }
 
 @media (max-width: 360px) {
-  .tab { padding: 8px 9px; font-size: 10.5px; }
+  .tab { padding: 8px 6px; font-size: 10.5px; }
   .tab svg { width: 20px; height: 20px; }
 }
 
 @media (min-width: 900px) {
-  .tabs {
-    position: sticky;
-    top: calc(var(--header-h) + 10px);
-    grid-template-columns: repeat(5, auto);
-    justify-content: center;
-    padding: 6px;
-    background: var(--surface-container-high);
-  }
+  .tabs { width: min(100vw - 40px, 560px); }
   .tab {
     flex-direction: row;
     gap: 9px;
@@ -787,6 +783,7 @@ code {
   z-index: 90;
   left: 50%;
   transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + 14px);
   bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
   display: flex;
   flex-direction: column;
