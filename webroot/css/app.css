@@ -295,6 +295,10 @@ body {
   overflow: hidden;
   box-shadow: var(--elev-1);
 }
+.card.warn {
+  border: 1px solid rgba(233, 196, 106, 0.4);
+}
+.card.warn h2 { color: var(--amber); }
 .card-hero {
   background:
     radial-gradient(420px 220px at 100% 0%, rgba(255, 138, 61, 0.13), transparent 65%),

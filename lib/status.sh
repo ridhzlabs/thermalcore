@@ -356,6 +356,50 @@ guard_stop() {
 }
 
 # ---------------------------------------------------------------------------
+# status_conflicts - report-only detection of other tuning/thermal modules.
+# Never touches them; surfaced to the WebUI as a passive warning.
+# Directories can be overridden via THERMALCORE_MODULES_DIR (for testing).
+# ---------------------------------------------------------------------------
+status_conflicts() {
+  _SC_OUT="[]"
+  _sc_list=""
+  _sc_dirs="${THERMALCORE_MODULES_DIR:-/data/adb/modules /data/adb/ksu/modules}"
+  for _sc_base in $_sc_dirs; do
+    [ -d "$_sc_base" ] || continue
+    for _sc_p in "$_sc_base"/*/module.prop; do
+      [ -f "$_sc_p" ] || continue
+      _sc_id=""; _sc_nm=""; _sc_ds=""; _sc_n=0
+      while IFS= read -r _sc_l && [ "$_sc_n" -lt 12 ]; do
+        _sc_n=$((_sc_n + 1))
+        case "$_sc_l" in
+          id=*)          _sc_id="${_sc_l#id=}" ;;
+          name=*)        _sc_nm="${_sc_l#name=}" ;;
+          description=*) _sc_ds="${_sc_l#description=}" ;;
+        esac
+      done < "$_sc_p"
+      [ "$_sc_id" = "thermal-core" ] && continue
+      [ -z "$_sc_id" ] && continue
+      case ",${_sc_list}," in *",${_sc_id},"*) continue ;; esac
+      case "${_sc_id} ${_sc_nm} ${_sc_ds}" in
+        *[Tt]hermal*|*[Cc]ool*|*governor*|*[Gg]odspeed*|*[Mm]agnetar*|*[Ll]speed*|*[Ff]rigus*|*[Oo]verclock*|*[Uu]CC*)
+          _sc_list="$_sc_list ${_sc_id}" ;;
+      esac
+    done
+  done
+  _sc_json=""; _sc_count=0
+  for _sc_id in $_sc_list; do
+    [ "$_sc_count" -ge 8 ] && break
+    json_escape_val "$_sc_id"; _sc_json="$_sc_json\"$_JE\","
+    _sc_count=$((_sc_count + 1))
+  done
+  case "$_sc_json" in
+    "") _SC_OUT="[]" ;;
+    *)  _SC_OUT="[${_sc_json%,}]" ;;
+  esac
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # status_json - full status document
 # ---------------------------------------------------------------------------
 status_json() {
@@ -459,7 +503,19 @@ status_json() {
   fi
   is_uint "$_sdk" || _sdk=0
 
-  json_escape_val "${_modver:-2.3.3}"; _jv_modver="$_JE"
+  # adaptive relief snapshot (reads only; relief.state is advisory data)
+  _rmode="$(config_get mode "$THERMALCORE_DATA/relief.state" 2>/dev/null)"; _rmode="${_rmode:-none}"
+  _rmap="$(config_get mem_avail_pct "$THERMALCORE_DATA/relief.state" 2>/dev/null)"
+  is_uint "$_rmap" || _rmap=""
+  if [ -z "$_rmap" ] && is_uint "$_mem_total" && [ "${_mem_total:-0}" -gt 0 ] && is_uint "${_mem_avail:-}"; then
+    _rmap=$(( _mem_avail * 100 / _mem_total ))
+  fi
+  [ -n "$_rmap" ] || _rmap=0
+  _rr_bool="$(config_get ENABLE_RAM_RELIEF)"; [ "${_rr_bool:-1}" = "0" ] && _rr_bool=false || _rr_bool=true
+  _nl_bool="$(config_get NIGHT_LEAN)";        [ "${_nl_bool:-1}" = "0" ] && _nl_bool=false || _nl_bool=true
+  status_conflicts
+
+  json_escape_val "${_modver:-2.4.0}"; _jv_modver="$_JE"
   json_escape_val "$_learning"; _jv_learning="$_JE"
   json_escape_val "$_debug"; _jv_debug="$_JE"
   json_escape_val "${_last_backup:-none}"; _jv_backup="$_JE"
@@ -473,6 +529,7 @@ status_json() {
   json_escape_val "${_bstatus:-unknown}"; _jv_bstatus="$_JE"
   json_escape_val "${_bhealth:-unknown}"; _jv_bhealth="$_JE"
   json_escape_val "${ZONES_MAX_TYPE:-n/a}"; _jv_max_type="$_JE"
+  json_escape_val "$_rmode"; _jv_rmode="$_JE"
 
   cat <<EOF
 {
@@ -486,6 +543,7 @@ status_json() {
     "guard": { "enabled": ${_guard_bool}, "triggered": ${_guard_tbool},
       "battery_max_c": ${_guard_max}, "interval_s": ${_guard_int}, "last_check": ${_guard_last} },
     "toggles": { "cpu": ${_t_cpu_b}, "gpu": ${_t_gpu_b}, "io": ${_t_io_b}, "vm": ${_t_vm_b} },
+    "relief": { "enabled": ${_rr_bool}, "night": ${_nl_bool}, "mode": "${_jv_rmode}", "mem_avail_pct": ${_rmap} },
     "latest_backup": "${_jv_backup}"
   },
   "device": {
@@ -518,6 +576,7 @@ status_json() {
   "thermal_max_type": "${_jv_max_type}",
   "storage": ${_storage},
   "vm": ${_vm},
+  "conflicts": ${_SC_OUT},
   "timestamp": $(now_ts)
 }
 EOF

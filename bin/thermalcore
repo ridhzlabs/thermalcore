@@ -23,6 +23,7 @@ export THERMALCORE_MODDIR
 . "$THERMALCORE_MODDIR/lib/backup.sh"   || { echo "thermalcore: backup.sh missing" >&2; exit 90; }
 . "$THERMALCORE_MODDIR/lib/profiles.sh" || { echo "thermalcore: profiles.sh missing" >&2; exit 90; }
 . "$THERMALCORE_MODDIR/lib/status.sh"   || { echo "thermalcore: status.sh missing" >&2; exit 90; }
+. "$THERMALCORE_MODDIR/lib/relief.sh"   || { echo "thermalcore: relief.sh missing" >&2; exit 90; }
 
 usage() {
   cat <<'EOF'
@@ -58,8 +59,10 @@ Safety
 
 Services
   guard start|stop|status   thermal guard watchdog
+  relief start|stop|status  adaptive RAM relief + night lean watcher
   daemon start|stop|restart start/stop/restart ThermalCore AI daemon
   log [N]                tail N lines of module log (default 50)
+  log export             copy the log to /sdcard/Download/
 EOF
 }
 
@@ -89,6 +92,7 @@ ThermalCore $(grep -m1 '^version=' "$THERMALCORE_MODDIR/module.prop" | cut -d= -
   daemon       : $(pidof thermal-cored 2>/dev/null | awk '{print "pid "$1}' || echo stopped)
   learning     : $(prop_get persist.sys.rianixia.learning_enabled unknown)
   guard        : $( [ "$(config_get ENABLE_THERMAL_GUARD)" = "0" ] && echo disabled || echo enabled ) (triggered: $(config_get triggered "$THERMALCORE_GUARD_STATE" 2>/dev/null || echo 0))
+  relief       : mode=$(config_get mode "$THERMALCORE_RELIEF_STATE" 2>/dev/null || echo none), ram-relief $( [ "$(config_get ENABLE_RAM_RELIEF)" = "0" ] && echo off || echo on ), night-lean $( [ "$(config_get NIGHT_LEAN)" = "0" ] && echo off || echo on )
   root manager : $(detect_get root_manager)
 EOF
 }
@@ -249,6 +253,14 @@ config_key_valid() {
       case "$_v" in battery_saver|balanced|performance|gaming|custom) return 0 ;; *) return 1 ;; esac ;;
     ENABLE_CPU_TWEAKS|ENABLE_GPU_TWEAKS|ENABLE_IO_TWEAKS|ENABLE_VM_TWEAKS|ENABLE_THERMAL_GUARD|BACKUP_ON_APPLY)
       case "$_v" in 0|1) return 0 ;; *) return 1 ;; esac ;;
+    ENABLE_RAM_RELIEF|NIGHT_LEAN)
+      case "$_v" in 0|1) return 0 ;; *) return 1 ;; esac ;;
+    RAM_RELIEF_LOW_PCT)
+      is_uint "$_v" && [ "$_v" -ge 5 ] && [ "$_v" -le 50 ] ;;
+    RAM_RELIEF_INTERVAL)
+      is_uint "$_v" && [ "$_v" -ge 15 ] && [ "$_v" -le 300 ] ;;
+    NIGHT_START_HOUR|NIGHT_END_HOUR)
+      is_uint "$_v" && [ "$_v" -le 23 ] ;;
     THERMAL_GUARD_INTERVAL)
       is_uint "$_v" && [ "$_v" -ge 10 ] && [ "$_v" -le 3600 ] ;;
     THERMAL_GUARD_BATTERY_MAX_C)
@@ -373,11 +385,41 @@ cmd_daemon() {
   esac
 }
 
+cmd_relief() {
+  need_root
+  case "$1" in
+    start)  relief_start ;;
+    stop)   relief_stop ;;
+    status)
+      if [ -f "$THERMALCORE_RELIEF_PID" ] && kill -0 "$(cat "$THERMALCORE_RELIEF_PID")" 2>/dev/null; then
+        echo "relief watcher running (pid $(cat "$THERMALCORE_RELIEF_PID"))"
+      else
+        echo "relief watcher stopped"
+      fi
+      echo "ram relief : $( [ "$(config_get ENABLE_RAM_RELIEF)" = "0" ] && echo disabled || echo enabled ) (low <= $(config_get RAM_RELIEF_LOW_PCT || echo 15)%)"
+      echo "night lean : $( [ "$(config_get NIGHT_LEAN)" = "0" ] && echo disabled || echo enabled ) ($(config_get NIGHT_START_HOUR || echo 1):00-$(config_get NIGHT_END_HOUR || echo 6):00)"
+      echo "mode       : $(config_get mode "$THERMALCORE_RELIEF_STATE" 2>/dev/null || echo none)"
+      [ -f "$THERMALCORE_RELIEF_STATE" ] && cat "$THERMALCORE_RELIEF_STATE" ;;
+    *) echo "usage: thermalcore relief start|stop|status" >&2; return 2 ;;
+  esac
+}
+
 cmd_log() {
   if [ "$1" = "clear" ]; then
     : > "$THERMALCORE_LOG_DIR/thermalcore.log" 2>/dev/null
     log "log cleared"
     echo "log cleared"
+    return 0
+  fi
+  if [ "$1" = "export" ]; then
+    _dst_dir="${THERMALCORE_EXPORT_DIR:-/sdcard/Download}"
+    [ -d "$_dst_dir" ] || mkdir -p "$_dst_dir" 2>/dev/null
+    [ -d "$_dst_dir" ] || { echo "log export: $_dst_dir unavailable" >&2; return 1; }
+    _dst="$_dst_dir/thermalcore-log-$(date +%Y%m%d-%H%M%S).log"
+    cp "$THERMALCORE_LOG_DIR/thermalcore.log" "$_dst" 2>/dev/null || { echo "log export: copy failed" >&2; return 1; }
+    chmod 0644 "$_dst" 2>/dev/null
+    echo "$_dst"
+    log "log exported to $_dst"
     return 0
   fi
   _n="${1:-50}"; is_uint "$_n" || _n=50
@@ -431,6 +473,7 @@ case "$1" in
   reset-config) cmd_reset_config ;;
   reset-custom) cmd_reset_custom ;;
   guard)    shift; cmd_guard "$@" ;;
+  relief)   shift; cmd_relief "$@" ;;
   daemon)   shift; cmd_daemon "$@" ;;
   log)      shift; cmd_log "$@" ;;
   doctor)   cmd_doctor ;;

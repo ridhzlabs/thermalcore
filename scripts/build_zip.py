@@ -46,6 +46,7 @@ FILES = [
     ("lib/backup.sh", 0o644),
     ("lib/profiles.sh", 0o644),
     ("lib/status.sh", 0o644),
+    ("lib/relief.sh", 0o644),
     ("profiles/battery_saver.conf", 0o644),
     ("profiles/balanced.conf", 0o644),
     ("profiles/performance.conf", 0o644),

@@ -14,6 +14,7 @@ export THERMALCORE_MODDIR="$MODDIR"
 . "$MODDIR/lib/backup.sh"
 . "$MODDIR/lib/profiles.sh"
 . "$MODDIR/lib/status.sh"
+. "$MODDIR/lib/relief.sh"
 
 # Wait for boot to complete (max 5 minutes, then proceed anyway)
 _waited=0
@@ -57,6 +58,11 @@ fi
 # Start thermal guard when enabled (lightweight: one sensor read per interval)
 if [ "$(config_get ENABLE_THERMAL_GUARD)" != "0" ]; then
   guard_start >/dev/null 2>&1
+fi
+
+# Start the adaptive relief watcher (RAM relief + night lean; self-exits when both disabled)
+if [ "$(config_get ENABLE_RAM_RELIEF)" != "0" ] || [ "$(config_get NIGHT_LEAN)" != "0" ]; then
+  relief_start >/dev/null 2>&1
 fi
 
 # Rewrite module.prop description with run state

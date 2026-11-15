@@ -307,6 +307,108 @@ grep -q '🔋 Battery Saver' "$_dsync/module.prop" && ok "desc shows battery sav
 grep -q '^description=\[' "$_dsync/module.prop" && ok "desc keeps prefix format" || bad "desc keeps prefix format"
 THERMALCORE_NO_DESC_SYNC=1 "$TC" config set CURRENT_PROFILE balanced >/dev/null 2>&1
 
+# ---------------------------------------------------------------------------
+section "adaptive relief: RAM relief engage/revert + night lean"
+_rl_data="$DATA/relief"
+rm -rf "$_rl_data"
+mkdir -p "$_rl_data"
+# meminfo: total 4GB, available 8% (low)
+wf "$MOCK/proc/meminfo" "MemTotal:        4000000 kB
+MemFree:          300000 kB
+MemAvailable:      320000 kB"
+wf "$MOCK/sys/class/backlight/backlight/brightness" 120
+wf "$MOCK/sys/class/backlight/backlight/max_brightness" 255
+wf "$MOCK/proc/sys/vm/vfs_cache_pressure" 80
+wf "$MOCK/proc/sys/vm/compaction_proactiveness" 20
+wf "$MOCK/proc/sys/vm/watermark_boost_factor" 0
+
+_rl_src() {
+  THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$_rl_data" THERMALCORE_MODDIR="$REPO" \
+  THERMALCORE_TEST_HOUR="$1" THERMALCORE_MODULES_DIR="$DATA/nomod" \
+  sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\" 2>/dev/null; echo VM:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\"; echo COMP:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/compaction_proactiveness\""
+}
+# tick 1: relief arms (not yet engaged — needs 2 consecutive low samples)
+_rl_out="$(_rl_src 10)"
+has "relief tick1 state" "$_rl_out" "mode=none"
+# tick 2: engaged
+_rl_out="$(_rl_src 10)"
+has "relief tick2 engaged" "$_rl_out" "mode=relief"
+has "relief vfs raised" "$_rl_out" "VM: 200"
+has "relief compaction raised" "$_rl_out" "COMP: 50"
+eq "relief watermark raised" "$(cat "$MOCK/proc/sys/vm/watermark_boost_factor" 2>/dev/null)" "100000"
+# meminfo improves -> disengage + revert to balanced baseline
+wf "$MOCK/proc/meminfo" "MemTotal:        4000000 kB
+MemAvailable:     1400000 kB"
+_rl_out="$(_rl_src 10)"
+has "relief reverted state" "$_rl_out" "mode=none"
+eq "relief vfs reverted" "$(cat "$MOCK/proc/sys/vm/vfs_cache_pressure" 2>/dev/null)" "80"
+
+# night lean: screen off for 20+ samples, hour 02, in window 01-06
+wf "$MOCK/sys/class/backlight/backlight/brightness" 0
+for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21; do _rl_out="$(_rl_src 2)"; done
+has "night engaged" "$_rl_out" "mode=night"
+eq "night compaction parked" "$(cat "$MOCK/proc/sys/vm/compaction_proactiveness" 2>/dev/null)" "0"
+eq "night vfs lean" "$(cat "$MOCK/proc/sys/vm/vfs_cache_pressure" 2>/dev/null)" "200"
+# wake up (screen on) inside window -> night disengages
+wf "$MOCK/sys/class/backlight/backlight/brightness" 200
+_rl_out="$(_rl_src 2)"
+has "night reverted on wake" "$_rl_out" "mode=none"
+eq "night vfs reverted" "$(cat "$MOCK/proc/sys/vm/vfs_cache_pressure" 2>/dev/null)" "80"
+# outside window even with screen off -> stays none
+wf "$MOCK/sys/class/backlight/backlight/brightness" 0
+_rl_out="$(_rl_src 15)"
+has "night blocked outside window" "$_rl_out" "mode=none"
+
+# both features disabled -> clean state + no writes
+_rl_out="$(THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$_rl_data" THERMALCORE_MODDIR="$REPO" THERMALCORE_TEST_HOUR=2 THERMALCORE_MODULES_DIR="$DATA/nomod" sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; THERMALCORE_NO_DESC_SYNC=1; export THERMALCORE_NO_DESC_SYNC; config_set ENABLE_RAM_RELIEF 0; config_set NIGHT_LEAN 0; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\"; echo VFS:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\"")"
+has "both disabled -> mode none" "$_rl_out" "mode=none"
+has "both disabled -> vfs untouched by relief" "$_rl_out" "VFS: 80"
+
+# relief status CLI parses
+_tc_out="$(THERMALCORE_MODDIR="$REPO" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" THERMALCORE_NO_DESC_SYNC=1 sh "$TC" relief status 2>/dev/null)"
+has "relief status output" "$_tc_out" "mode="
+
+# ---------------------------------------------------------------------------
+section "conflicts report + relief in status json"
+mkdir -p "$DATA/mods/magnetar" "$DATA/mods/thermal-core"
+wf "$DATA/mods/magnetar/module.prop" "id=magnetar
+name=Magnetar Updater
+description=Performance governor tuner"
+wf "$DATA/mods/thermal-core/module.prop" "id=thermal-core
+name=ThermalCore
+description=Universal thermal & power core"
+_json="$(THERMALCORE_MODDIR="$REPO" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" THERMALCORE_MODULES_DIR="$DATA/mods" THERMALCORE_NO_DESC_SYNC=1 sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; status_json")"
+printf '%s' "$_json" | "$PY" -c "
+import json,sys
+d=json.load(sys.stdin)
+r=d['module'].get('relief',{})
+assert r.get('enabled') is True, 'relief.enabled missing'
+assert r.get('night') is True, 'relief.night missing'
+assert 'mode' in r and 'mem_avail_pct' in r, 'relief fields missing'
+assert isinstance(d.get('conflicts'), list), 'conflicts not list'
+assert 'magnetar' in d['conflicts'], 'magnetar not detected'
+assert 'thermal-core' not in d['conflicts'], 'self detected'
+" && ok "status json: relief fields + conflict detection" || bad "status json: relief/conflicts"
+# no conflicting modules -> empty array
+mkdir -p "$DATA/mods2/innocent"
+wf "$DATA/mods2/innocent/module.prop" "id=innocent
+name=Innocent Module
+description=Just fonts"
+_json="$(THERMALCORE_MODDIR="$REPO" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" THERMALCORE_MODULES_DIR="$DATA/mods2" THERMALCORE_NO_DESC_SYNC=1 sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; status_json")"
+printf '%s' "$_json" | "$PY" -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d.get('conflicts') == [], 'expected empty conflicts, got %r' % (d.get('conflicts'),)
+" && ok "status json: conflicts empty when clean" || bad "status json: conflicts should be empty"
+# log export (mocked export dir)
+_mkdir_export="$DATA/sdcard"
+_tc_out="$(THERMALCORE_MODDIR="$REPO" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" THERMALCORE_EXPORT_DIR="$_mkdir_export" sh "$TC" log export 2>/dev/null)"
+case "$_tc_out" in
+  *"$_mkdir_export/thermalcore-log-"*) ok "log export path ($_mkdir_export)" ;;
+  *) bad "log export failed: $_tc_out" ;;
+esac
+[ -f "$_tc_out" ] && ok "log export file exists" || bad "log export file missing"
+
 printf '\n== summary ==\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
 exit 0

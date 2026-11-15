@@ -1,5 +1,21 @@
 # Changelog
 
+## [v2.4.0] - 2026-11-15
+
+### Adaptive relief (multitasking-safe)
+- New `relief` watcher: reacts to real memory pressure with reversible kernel-cache trims (higher vfs cache pressure, more proactive compaction, temporary watermark boost) instead of dropping caches or killing apps, so background apps and open files stay warm.
+- New night lean mode: after ~10 minutes of screen-off inside the night window the watcher parks background compaction and keeps caches lean, cutting idle CPU; it reverts automatically at wake.
+- Everything reverses to the active profile's VM baseline on recovery or when disabled, and both actions respect the VM tuning switch.
+
+### Awareness & tooling
+- Passive conflict detection: other tuning/thermal modules are listed in the status JSON and shown as a WebUI warning on the Advanced tab; ThermalCore never writes to them.
+- New `thermalcore relief start|stop|status` CLI.
+- Log export: one tap in the WebUI (or `thermalcore log export`) writes the log to `/sdcard/Download/`.
+- New config keys: `ENABLE_RAM_RELIEF`, `NIGHT_LEAN`, `RAM_RELIEF_LOW_PCT`, `RAM_RELIEF_INTERVAL`, `NIGHT_START_HOUR`, `NIGHT_END_HOUR`.
+
+### Notes
+- Update in place from the manager or flash over 2.3.3, then reboot once.
+
 ## [v2.3.3] - 2026-11-14
 
 ### Navigation bar hardening

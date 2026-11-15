@@ -26,8 +26,10 @@
 | Profiles | `battery_saver`, `balanced`, `performance`, `gaming`, plus a fully editable `custom` profile |
 | Custom tuning | CPU/GPU frequency caps, governors, I/O scheduler and read-ahead, VM tunables, sugov rate limits |
 | Thermal guard | Watches battery temperature and caps CPU/GPU when the threshold is crossed, then restores the profile on cooldown |
+| Adaptive relief | Multitasking-safe memory relief under pressure plus a night lean mode — reversible kernel-cache trims only, never kills apps or drops the page cache |
 | AI engine | Bundled `thermal-cored` daemon adapts to vendor thermal zones and learning props |
-| WebUI | Live dashboard, one-tap profiles, guard controls, custom editor, backup/restore |
+| WebUI | Live dashboard, one-tap profiles, guard controls, custom editor, backup/restore, log export |
+| Conflict awareness | Passively reports other tuning/thermal modules (never writes to them) so you can avoid fighting over the same sysfs knobs |
 | Safety net | Auto snapshot before apply, rollback on failure, factory restore on uninstall, managed-path-only writes |
 | Updates | `updateJson` enabled, so the KernelSU/APatch manager can check and install new releases directly |
 
@@ -68,6 +70,8 @@ thermalcore apply balanced        # snapshot + apply
 thermalcore custom set GPU_MAX_FREQ_PCT 70
 thermalcore custom setmany CPU_GOVERNOR=schedutil VM_SWAPPINESS=60
 thermalcore guard start|status|stop
+thermalcore relief start|status|stop   # adaptive RAM relief + night lean watcher
+thermalcore log export             # copy the log to /sdcard/Download/
 thermalcore backup [name]         # manual snapshot
 thermalcore backups               # list snapshots
 thermalcore restore [name]        # restore latest or a named snapshot
@@ -76,6 +80,16 @@ thermalcore doctor                # self-test
 ```
 
 All commands are available from the WebUI and as JSON for automation.
+
+## Adaptive relief
+
+A lightweight watcher (one tick every 30 s, single backlight + meminfo read) that reacts to memory pressure without ever hurting multitasking:
+
+- **RAM relief** engages when `MemAvailable` drops to ≤ 15 % of total memory for two consecutive ticks while the screen is in use: it raises `vfs_cache_pressure` (reclaims dentry/inode caches only), lifts compaction proactiveness and the kswapd watermark boost. Nothing is killed, the page cache is never dropped, so open apps and their files stay warm.
+- **Night lean** engages after ~10 minutes of screen-off inside the night window (default 01:00–06:00): leaner caches and compaction parked so the device spends less CPU while sleeping.
+- Both revert to the active profile's VM baseline automatically — on wake, on recovery (`MemAvailable` ≥ low + 10 %), or when the feature is switched off. Disabling VM tuning turns both actions into no-ops.
+
+Config keys: `ENABLE_RAM_RELIEF`, `NIGHT_LEAN`, `RAM_RELIEF_LOW_PCT` (5–50, default 15), `RAM_RELIEF_INTERVAL` (15–300 s, default 30), `NIGHT_START_HOUR` / `NIGHT_END_HOUR` (default 1 / 6).
 
 ## Performance
 
@@ -102,7 +116,7 @@ Root cause: this ROM's `/system/bin/sh` has no `printf` builtin, so every `print
 Requirements: Python 3 (stdlib only), Git.
 
 ```sh
-python3 scripts/build_zip.py --out dist/ThermalCore-2.3.3.zip
+python3 scripts/build_zip.py --out dist/ThermalCore-2.4.0.zip
 ```
 
 The script packages exactly the module payload, sets executable modes, embeds the installer checksums and optionally overrides version metadata:

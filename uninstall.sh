@@ -14,6 +14,10 @@ if [ -f /data/adb/thermal-core/guard.pid ]; then
   _gp="$(cat /data/adb/thermal-core/guard.pid 2>/dev/null)"
   case "$_gp" in (''|*[!0-9]*) ;; (*) kill "$_gp" 2>/dev/null ;; esac
 fi
+if [ -f /data/adb/thermal-core/relief.pid ]; then
+  _rp="$(cat /data/adb/thermal-core/relief.pid 2>/dev/null)"
+  case "$_rp" in (''|*[!0-9]*) ;; (*) kill "$_rp" 2>/dev/null ;; esac
+fi
 for p in $(pidof thermal-cored); do
   kill -TERM "$p" 2>/dev/null
 done

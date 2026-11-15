@@ -65,10 +65,11 @@
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.2.1', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.4.0', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
+      relief: { enabled: true, night: true, mode: 'none', mem_avail_pct: 34 },
       latest_backup: 'install-initial'
     },
     device: {
@@ -97,6 +98,7 @@
     thermal_max_type: 'soc_max',
     storage: [{ dev: 'sda', scheduler: 'cpq', read_ahead_kb: 128 }],
     vm: { swappiness: 100, vfs_cache_pressure: 80, dirty_ratio: 20, dirty_background_ratio: 5, compaction_proactiveness: 20 },
+    conflicts: [],
     timestamp: 0
   };
 
@@ -349,9 +351,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.3.3'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.3.3');
-    setText('aboutVersion', mod.version || '2.3.3');
+    setText('versionChip', 'v' + (mod.version || '2.4.0'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.4.0');
+    setText('aboutVersion', mod.version || '2.4.0');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
@@ -484,6 +486,20 @@
     }
     setText('latestBackup', mod.latest_backup && mod.latest_backup !== 'none' ? 'latest: ' + mod.latest_backup : 'no backup yet');
     if (el('daemonVersion')) setText('daemonVersion', mod.daemon && mod.daemon.alive ? 'AI online' : 'AI offline');
+    var relief = mod.relief || {};
+    setChecked('s_relief', relief.enabled !== false);
+    setChecked('s_night', relief.night !== false);
+    if (el('reliefMode')) {
+      var rmode = relief.mode || 'none';
+      setText('reliefMode', rmode === 'relief' ? 'RAM relief active' : rmode === 'night' ? 'night lean' : 'idle');
+    }
+    var cb = el('conflictBanner');
+    if (cb) {
+      var cs = Array.isArray(s.conflicts) ? s.conflicts : [];
+      cb.classList.toggle('hidden', cs.length === 0);
+      if (cs.length) setText('conflictList',
+        'Detected: ' + cs.join(', ') + '. ThermalCore stays passive and never writes to them — consider disabling them to avoid fights over the same kernel knobs.');
+    }
   }
 
   function setChecked(id, v) { var n = el(id); if (n) n.checked = !!v; }
@@ -821,6 +837,8 @@
     bindToggle('s_gpu', 'ENABLE_GPU_TWEAKS');
     bindToggle('s_io', 'ENABLE_IO_TWEAKS');
     bindToggle('s_vm', 'ENABLE_VM_TWEAKS');
+    bindToggle('s_relief', 'ENABLE_RAM_RELIEF', { toast: 'RAM relief updated' });
+    bindToggle('s_night', 'NIGHT_LEAN', { toast: 'Night lean updated' });
     bindToggle('s_guard', 'ENABLE_THERMAL_GUARD', { guard: true, toast: 'Thermal guard updated' });
     bindToggle('quickGuard', 'ENABLE_THERMAL_GUARD', { guard: true, toast: 'Thermal guard updated' });
 
@@ -882,6 +900,14 @@
     el('restoreLatest').addEventListener('click', function () { doRestore('latest', el('restoreLatest')); });
     el('restoreFactory').addEventListener('click', function () { doRestore('factory', el('restoreFactory')); });
     el('logRefresh').addEventListener('click', refreshLog);
+    el('logExport').addEventListener('click', function () {
+      if (state.demo) return toast('Preview mode — no changes written.', 'warn');
+      toast('Exporting log…', 'warn');
+      runCli('log export').then(function (res) {
+        if (!res.ok) return errorDialog('Log export failed', res);
+        toast('Exported: ' + (res.out || '').trim(), 'ok');
+      });
+    });
     el('logClear').addEventListener('click', function () {
       if (state.demo) return toast('Preview mode — no changes written.', 'warn');
       confirmDialog('Clear module log?', 'Deletes the ThermalCore log file contents. This cannot be undone.', 'Clear log', true)
