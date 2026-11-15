@@ -325,7 +325,7 @@ wf "$MOCK/proc/sys/vm/watermark_boost_factor" 0
 _rl_src() {
   THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$_rl_data" THERMALCORE_MODDIR="$REPO" \
   THERMALCORE_TEST_HOUR="$1" THERMALCORE_MODULES_DIR="$DATA/nomod" \
-  sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\" 2>/dev/null; echo VM:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\"; echo COMP:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/compaction_proactiveness\""
+  sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\" 2>/dev/null; echo \"VM: \$(cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\")\"; echo \"COMP: \$(cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/compaction_proactiveness\")\""
 }
 # tick 1: relief arms (not yet engaged — needs 2 consecutive low samples)
 _rl_out="$(_rl_src 10)"
@@ -360,13 +360,14 @@ _rl_out="$(_rl_src 15)"
 has "night blocked outside window" "$_rl_out" "mode=none"
 
 # both features disabled -> clean state + no writes
-_rl_out="$(THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$_rl_data" THERMALCORE_MODDIR="$REPO" THERMALCORE_TEST_HOUR=2 THERMALCORE_MODULES_DIR="$DATA/nomod" sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; THERMALCORE_NO_DESC_SYNC=1; export THERMALCORE_NO_DESC_SYNC; config_set ENABLE_RAM_RELIEF 0; config_set NIGHT_LEAN 0; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\"; echo VFS:; cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\"")"
+_rl_out="$(THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$_rl_data" THERMALCORE_MODDIR="$REPO" THERMALCORE_TEST_HOUR=2 THERMALCORE_MODULES_DIR="$DATA/nomod" sh -c ". $REPO/lib/core.sh; . $REPO/lib/detect.sh; . $REPO/lib/backup.sh; . $REPO/lib/profiles.sh; . $REPO/lib/status.sh; . $REPO/lib/relief.sh; THERMALCORE_NO_DESC_SYNC=1; export THERMALCORE_NO_DESC_SYNC; config_set ENABLE_RAM_RELIEF 0; config_set NIGHT_LEAN 0; relief_tick; cat \"\$THERMALCORE_DATA/relief.state\"; echo \"VFS: \$(cat \"\$THERMALCORE_SYSROOT/proc/sys/vm/vfs_cache_pressure\")\"")"
 has "both disabled -> mode none" "$_rl_out" "mode=none"
 has "both disabled -> vfs untouched by relief" "$_rl_out" "VFS: 80"
 
 # relief status CLI parses
 _tc_out="$(THERMALCORE_MODDIR="$REPO" THERMALCORE_SYSROOT="$MOCK" THERMALCORE_DATA="$DATA" THERMALCORE_NO_DESC_SYNC=1 sh "$TC" relief status 2>/dev/null)"
-has "relief status output" "$_tc_out" "mode="
+has "relief status output" "$_tc_out" "ram relief : enabled (low <= 15%)"
+has "relief status mode line" "$_tc_out" "mode       :"
 
 # ---------------------------------------------------------------------------
 section "conflicts report + relief in status json"

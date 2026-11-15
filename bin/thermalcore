@@ -396,9 +396,12 @@ cmd_relief() {
       else
         echo "relief watcher stopped"
       fi
-      echo "ram relief : $( [ "$(config_get ENABLE_RAM_RELIEF)" = "0" ] && echo disabled || echo enabled ) (low <= $(config_get RAM_RELIEF_LOW_PCT || echo 15)%)"
-      echo "night lean : $( [ "$(config_get NIGHT_LEAN)" = "0" ] && echo disabled || echo enabled ) ($(config_get NIGHT_START_HOUR || echo 1):00-$(config_get NIGHT_END_HOUR || echo 6):00)"
-      echo "mode       : $(config_get mode "$THERMALCORE_RELIEF_STATE" 2>/dev/null || echo none)"
+      _rl_low="$(config_get RAM_RELIEF_LOW_PCT)"; [ -n "$_rl_low" ] || _rl_low=15
+      _rl_ns="$(config_get NIGHT_START_HOUR)"; [ -n "$_rl_ns" ] || _rl_ns=1
+      _rl_ne="$(config_get NIGHT_END_HOUR)"; [ -n "$_rl_ne" ] || _rl_ne=6
+      echo "ram relief : $( [ "$(config_get ENABLE_RAM_RELIEF)" = "0" ] && echo disabled || echo enabled ) (low <= ${_rl_low}%)"
+      echo "night lean : $( [ "$(config_get NIGHT_LEAN)" = "0" ] && echo disabled || echo enabled ) (${_rl_ns}:00-${_rl_ne}:00)"
+      echo "mode       : $(config_get mode "$THERMALCORE_RELIEF_STATE" 2>/dev/null)"
       [ -f "$THERMALCORE_RELIEF_STATE" ] && cat "$THERMALCORE_RELIEF_STATE" ;;
     *) echo "usage: thermalcore relief start|stop|status" >&2; return 2 ;;
   esac
