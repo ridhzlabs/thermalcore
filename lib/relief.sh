@@ -211,7 +211,7 @@ relief_tick() {
 # ---------------------------------------------------------------------------
 relief_loop() {
   init_dirs
-  log "relief: watcher started (pid $$)"
+  log "relief: watcher started"
   while :; do
     relief_tick
     _rr="$(config_get ENABLE_RAM_RELIEF)"; _rr="${_rr:-1}"
@@ -239,6 +239,7 @@ relief_start() {
   _pid=$!
   printf '%s\n' "$_pid" > "$THERMALCORE_RELIEF_PID"
   chmod 0644 "$THERMALCORE_RELIEF_PID"
+  log "relief: watcher started (pid $_pid)"
   printf 'relief started (pid %s)\n' "$_pid"
   return 0
 }
