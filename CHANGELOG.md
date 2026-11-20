@@ -1,5 +1,16 @@
 # Changelog
 
+## [v2.5.1] - 2026-11-16
+
+### SmartTherm: multitasking-first memory policy
+- `smartherm` now pins swappiness to the stock 100 baseline (instead of leaving a previous profile's low value in place), so zram compresses background apps instead of the low-memory killer ejecting them — switching apps no longer forces a cold start.
+- Cache pressure eased from 60 to 50: app binaries and resources stay in the page cache, so reopened apps resume warm.
+- CPU/GPU caps are unchanged (88% / 80%), so the cool-and-lean behaviour stays the same.
+- Note: OEM background-app restrictions can still kill apps; this profile only removes ThermalCore's own contribution to cold starts.
+
+### Notes
+- Update in place or flash over 2.5.0, then reboot once.
+
 ## [v2.5.0] - 2026-11-16
 
 ### New profile: SmartTherm

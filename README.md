@@ -38,7 +38,7 @@
 | Profile | CPU | GPU | I/O | VM | Use case |
 | --- | --- | --- | --- | --- | --- |
 | `battery_saver` | smart governor, gentle 75% cap | smart, 60% cap | lean read-ahead | lean writeback, no boost churn | long standby, low charge |
-| `smartherm` | smart governor, cool 88% sustained cap | smart, 80% cap | lean read-ahead | longer-lived caches, light compaction, no boost | cool + efficient daily driver, no speed loss |
+| `smartherm` | smart governor, cool 88% sustained cap | smart, 80% cap | lean read-ahead | zram-friendly swap, longer-lived caches, light compaction | cool + efficient daily driver, apps stay warm |
 | `balanced` | smart governor, gentle 95% cap | smart, 90% cap | lean read-ahead | lean writeback, no watermark boost | daily driver |
 | `performance` | full clocks, boost churn trimmed | performance governor | low latency | latency-friendly | heavy apps |
 | `gaming` | sustained high caps, boost churn trimmed | high caps + floor | low latency | responsiveness | long gaming sessions |
@@ -117,7 +117,7 @@ Root cause: this ROM's `/system/bin/sh` has no `printf` builtin, so every `print
 Requirements: Python 3 (stdlib only), Git.
 
 ```sh
-python3 scripts/build_zip.py --out dist/ThermalCore-2.5.0.zip
+python3 scripts/build_zip.py --out dist/ThermalCore-2.5.1.zip
 ```
 
 The script packages exactly the module payload, sets executable modes, embeds the installer checksums and optionally overrides version metadata:

@@ -16,8 +16,8 @@
     },
     smartherm: {
       label: 'SmartTherm', tag: 'Cool, efficient, full-feel',
-      desc: 'Vendor smart governors and fast ramping with slightly tighter sustained caps (88%/80%). Quieter background compaction, no watermark boost and longer-lived file caches: runs cooler and drains less while everyday speed stays balanced-class.',
-      tags: ['cpu ≤88%', 'gpu ≤80%', 'cooler sustained']
+      desc: 'Vendor smart governors and fast ramping with slightly tighter sustained caps (88%/80%). Quiets background compaction, keeps file caches longer and lets zram hold background apps instead of the killer — cooler, leaner, and switching apps rarely reloads them.',
+      tags: ['cpu ≤88%', 'gpu ≤80%', 'apps stay warm']
     },
     balanced: {
       label: 'Balanced', tag: 'Everyday, battery-lean',
@@ -71,7 +71,7 @@
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.5.0', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.5.1', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
@@ -357,9 +357,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.5.0'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.5.0');
-    setText('aboutVersion', mod.version || '2.5.0');
+    setText('versionChip', 'v' + (mod.version || '2.5.1'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.5.1');
+    setText('aboutVersion', mod.version || '2.5.1');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';

@@ -245,8 +245,10 @@ eq "base read_ahead" "$(rf "$MOCK/sys/block/sda/queue/read_ahead_kb")" 128
 eq "base profile pointer" "$($TC config get CURRENT_PROFILE)" balanced
 
 # ---------------------------------------------------------------------------
-section "smartherm apply: cool + efficient, no speed loss"
+section "smartherm apply: cool + efficient, no app reloads"
 $TC profiles | grep -q 'smartherm' && ok "profiles lists smartherm" || bad "profiles lists smartherm"
+wf "$MOCK/proc/sys/vm/vfs_cache_pressure" 80
+wf "$MOCK/proc/sys/vm/swappiness" 20
 OUT="$(run_tc apply smartherm)"; RC=$?
 eq "apply smartherm rc" "$RC" 0
 eq "smartherm cpu0 gov kept" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/scaling_governor")" sugov_ext
@@ -254,8 +256,8 @@ eq "smartherm cpu0 max 88%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy0/
 eq "smartherm cpu4 max 88%" "$(rf "$MOCK/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq")" 2000000
 eq "smartherm gpu gov kept" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/governor")" dummy
 eq "smartherm gpu max 80%" "$(rf "$MOCK/sys/class/devfreq/13000000.mali/max_freq")" 600000000
-eq "smartherm swappiness untouched" "$(rf "$MOCK/proc/sys/vm/swappiness")" 100
-eq "smartherm vfs caches kept" "$(rf "$MOCK/proc/sys/vm/vfs_cache_pressure")" 60
+eq "smartherm swappiness zram-friendly" "$(rf "$MOCK/proc/sys/vm/swappiness")" 100
+eq "smartherm vfs caches kept" "$(rf "$MOCK/proc/sys/vm/vfs_cache_pressure")" 50
 eq "smartherm compaction light" "$(rf "$MOCK/proc/sys/vm/compaction_proactiveness")" 10
 eq "smartherm watermark boost off" "$(rf "$MOCK/proc/sys/vm/watermark_boost_factor")" 0
 eq "smartherm profile" "$($TC config get CURRENT_PROFILE)" smartherm
