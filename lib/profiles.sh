@@ -71,7 +71,7 @@ EOF
 # ---------------------------------------------------------------------------
 profile_file() {
   case "$1" in
-    battery_saver|balanced|performance|gaming)
+    battery_saver|smartherm|balanced|performance|gaming)
       print -r -- "$THERMALCORE_MODDIR/profiles/$1.conf" ;;
     custom)
       print -r -- "$THERMALCORE_CUSTOM_CONF" ;;
@@ -475,7 +475,7 @@ current_profile() {
   init_default_config
   _cp="$(config_get CURRENT_PROFILE)"
   case "$_cp" in
-    battery_saver|balanced|performance|gaming|custom) print -r -- "$_cp" ;;
+    battery_saver|smartherm|balanced|performance|gaming|custom) print -r -- "$_cp" ;;
     *) print -r -- 'balanced' ;;
   esac
 }

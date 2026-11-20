@@ -139,7 +139,7 @@ backup_restore() {
   done < "$_br_dir/state"
   _br_profile="$(config_get profile "$_br_dir/manifest" 2>/dev/null)"
   case "$_br_profile" in
-    battery_saver|balanced|performance|gaming|custom)
+    battery_saver|smartherm|balanced|performance|gaming|custom)
       config_set CURRENT_PROFILE "$_br_profile"
       log "backup_restore: current profile restored to '$_br_profile'" ;;
   esac

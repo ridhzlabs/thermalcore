@@ -336,6 +336,7 @@ body {
   color: transparent;
 }
 .card-hero[data-profile="battery_saver"] { --tx1: #e9fff3; --tx2: #63d99e; }
+.card-hero[data-profile="smartherm"] { --tx1: #e7fbff; --tx2: #5ecfe8; }
 .card-hero[data-profile="performance"] { --tx1: #fff4ea; --tx2: #ffb786; }
 .card-hero[data-profile="gaming"] { --tx1: #fff1f0; --tx2: #ff9e93; }
 .card-hero[data-profile="custom"] { --tx1: #f6efff; --tx2: #d6b5ff; }
@@ -653,11 +654,13 @@ details.acc[open] summary::after { transform: rotate(-135deg); }
     var(--surface-container-low);
 }
 .profile-card--battery_saver { --pc: #63d99e; }
+.profile-card--smartherm { --pc: #5ecfe8; }
 .profile-card--balanced { --pc: #93c9f5; }
 .profile-card--performance { --pc: #ffb786; }
 .profile-card--gaming { --pc: #ff9e93; }
 .profile-card--custom { --pc: #d6b5ff; }
 .profile-card--battery_saver.active { border-color: rgba(99, 217, 158, 0.55); box-shadow: 0 0 0 1px rgba(99, 217, 158, 0.25); }
+.profile-card--smartherm.active { border-color: rgba(94, 207, 232, 0.55); box-shadow: 0 0 0 1px rgba(94, 207, 232, 0.25); }
 .profile-card--balanced.active { border-color: rgba(147, 201, 245, 0.55); box-shadow: 0 0 0 1px rgba(147, 201, 245, 0.25); }
 .profile-card--performance.active { border-color: rgba(255, 183, 134, 0.6); box-shadow: 0 0 0 1px rgba(255, 183, 134, 0.28); }
 .profile-card--gaming.active { border-color: rgba(255, 158, 147, 0.55); box-shadow: 0 0 0 1px rgba(255, 158, 147, 0.25); }

@@ -515,7 +515,7 @@ status_json() {
   _nl_bool="$(config_get NIGHT_LEAN)";        [ "${_nl_bool:-1}" = "0" ] && _nl_bool=false || _nl_bool=true
   status_conflicts
 
-  json_escape_val "${_modver:-2.4.0}"; _jv_modver="$_JE"
+  json_escape_val "${_modver:-2.5.0}"; _jv_modver="$_JE"
   json_escape_val "$_learning"; _jv_learning="$_JE"
   json_escape_val "$_debug"; _jv_debug="$_JE"
   json_escape_val "${_last_backup:-none}"; _jv_backup="$_JE"
@@ -595,6 +595,7 @@ module_prop_set_status() {
   _mp_prof="$(config_get CURRENT_PROFILE 2>/dev/null)"
   case "$_mp_prof" in
     battery_saver) _mp_state='🔋 Battery Saver · CPU ≤75% · GPU ≤60%' ;;
+    smartherm)     _mp_state='❄️ SmartTherm · CPU ≤88% · GPU ≤80%' ;;
     performance)   _mp_state='🚀 Performance · full clocks · low latency' ;;
     gaming)        _mp_state='🎮 Gaming · GPU floor · sustained caps' ;;
     custom)        _mp_state='🛠️ Custom · tuned from the WebUI' ;;

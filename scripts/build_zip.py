@@ -48,6 +48,7 @@ FILES = [
     ("lib/status.sh", 0o644),
     ("lib/relief.sh", 0o644),
     ("profiles/battery_saver.conf", 0o644),
+    ("profiles/smartherm.conf", 0o644),
     ("profiles/balanced.conf", 0o644),
     ("profiles/performance.conf", 0o644),
     ("profiles/gaming.conf", 0o644),

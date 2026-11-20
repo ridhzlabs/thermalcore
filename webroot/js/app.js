@@ -14,6 +14,11 @@
       desc: 'Keeps vendor smart governors, gently caps CPU/GPU clocks and trims background memory churn. Notifications and Doze behaviour are untouched.',
       tags: ['cpu ≤75%', 'gpu ≤60%', 'no boost churn']
     },
+    smartherm: {
+      label: 'SmartTherm', tag: 'Cool, efficient, full-feel',
+      desc: 'Vendor smart governors and fast ramping with slightly tighter sustained caps (88%/80%). Quieter background compaction, no watermark boost and longer-lived file caches: runs cooler and drains less while everyday speed stays balanced-class.',
+      tags: ['cpu ≤88%', 'gpu ≤80%', 'cooler sustained']
+    },
     balanced: {
       label: 'Balanced', tag: 'Everyday, battery-lean',
       desc: 'Vendor smart governors with gentle 95%/90% clock caps, lean writeback and no watermark boost. Feels full-speed, drains less.',
@@ -38,6 +43,7 @@
 
   var ICONS = {
     battery_saver: '<svg viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><path d="M6.5 10.5v3M10 10.5v3"/></svg>',
+    smartherm: '<svg viewBox="0 0 24 24"><path d="M10 13.8V5a2 2 0 1 1 4 0v8.8a4.5 4.5 0 1 1-4 0z"/><path d="M12 9.5v5.5"/><path d="M17.5 5.5l1.2-1.2M17.5 8.5l1.2 1.2"/></svg>',
     balanced: '<svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="17" r="2"/></svg>',
     performance: '<svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L9.8 22 19 10.5h-6.5L13 2z"/></svg>',
     gaming: '<svg viewBox="0 0 24 24"><path d="M7 8h10a5 5 0 0 1 4.9 6l-.7 3a3 3 0 0 1-5.1 1.5L14.5 17h-5l-1.6 1.5A3 3 0 0 1 2.8 17l-.7-3A5 5 0 0 1 7 8z"/><path d="M8 11.5v3M6.5 13h3M16.5 12h.01M18.5 14.5h.01"/></svg>',
@@ -65,7 +71,7 @@
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.4.0', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.5.0', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
@@ -351,9 +357,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.4.0'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.4.0');
-    setText('aboutVersion', mod.version || '2.4.0');
+    setText('versionChip', 'v' + (mod.version || '2.5.0'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.5.0');
+    setText('aboutVersion', mod.version || '2.5.0');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
@@ -795,7 +801,7 @@
 
   /* ---------------- build profile cards ---------------- */
   function buildProfiles() {
-    var order = ['battery_saver', 'balanced', 'performance', 'gaming', 'custom'];
+    var order = ['battery_saver', 'smartherm', 'balanced', 'performance', 'gaming', 'custom'];
     el('profileGrid').innerHTML = order.map(function (name) {
       var p = PROFILES[name];
       return '<article class="profile-card profile-card--' + name + '" data-profile="' + name + '">' +

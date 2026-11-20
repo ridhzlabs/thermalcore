@@ -40,7 +40,7 @@ Status & info
   version                print version
 
 Profiles
-  apply <name>           apply battery_saver|balanced|performance|gaming|custom
+  apply <name>           apply battery_saver|smartherm|balanced|performance|gaming|custom
   custom get [all|KEY]   read custom profile (default: all)
   custom set KEY VALUE   set one custom key (validated)
   custom setmany K=V...  set several custom keys atomically (validated)
@@ -122,11 +122,12 @@ cmd_detect() {
 cmd_profiles() {
   init_default_config
   _cur="$(current_profile)"
-  for _p in battery_saver balanced performance gaming custom; do
+  for _p in battery_saver smartherm balanced performance gaming custom; do
     _mark=" "; [ "$_p" = "$_cur" ] && _mark="*"
     _desc=""
     case "$_p" in
       battery_saver) _desc="max endurance, no-stutter caps" ;;
+      smartherm)     _desc="cool + efficient, near-balanced speed" ;;
       balanced)      _desc="daily default, battery-lean caps" ;;
       performance)   _desc="max responsiveness, performance governor" ;;
       gaming)        _desc="performance + locked-ish GPU floor, low I/O latency" ;;
@@ -139,7 +140,7 @@ cmd_profiles() {
 cmd_apply() {
   need_root
   _name="$1"
-  [ -z "$_name" ] && { echo "usage: thermalcore apply <battery_saver|balanced|performance|gaming|custom>" >&2; return 2; }
+  [ -z "$_name" ] && { echo "usage: thermalcore apply <battery_saver|smartherm|balanced|performance|gaming|custom>" >&2; return 2; }
   case "$_name" in custom) init_default_config ;; esac
   APPLY_FAIL=0; APPLY_WARN=0; APPLY_NOTE=""
   if apply_profile "$_name"; then
@@ -250,7 +251,7 @@ config_key_valid() {
   _k="$1"; _v="$2"
   case "$_k" in
     CURRENT_PROFILE)
-      case "$_v" in battery_saver|balanced|performance|gaming|custom) return 0 ;; *) return 1 ;; esac ;;
+      case "$_v" in battery_saver|smartherm|balanced|performance|gaming|custom) return 0 ;; *) return 1 ;; esac ;;
     ENABLE_CPU_TWEAKS|ENABLE_GPU_TWEAKS|ENABLE_IO_TWEAKS|ENABLE_VM_TWEAKS|ENABLE_THERMAL_GUARD|BACKUP_ON_APPLY)
       case "$_v" in 0|1) return 0 ;; *) return 1 ;; esac ;;
     ENABLE_RAM_RELIEF|NIGHT_LEAN)

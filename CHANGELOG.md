@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.5.0] - 2026-11-16
+
+### New profile: SmartTherm
+- `smartherm` targets the sweet spot the other profiles miss: cool, battery-lean and still fast. Vendor smart governors and their fast ramping are kept, only the sustained peak clocks are trimmed (88% CPU / 80% GPU), background compaction is lightened, watermark boost churn is off and file caches live longer so apps reload less.
+- Plus in the CLI (`thermalcore apply smartherm`), the WebUI profile grid (icy-blue card) and the status/description badge.
+- Restore, guard recovery and JSON status all understand the new profile.
+
+### Notes
+- Update in place or flash over 2.4.0, then reboot once.
+
 ## [v2.4.0] - 2026-11-15
 
 ### Adaptive relief (multitasking-safe)
