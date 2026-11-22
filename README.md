@@ -29,7 +29,7 @@
 | Adaptive relief | Multitasking-safe memory relief under pressure plus a night lean mode — reversible kernel-cache trims only, never kills apps or drops the page cache |
 | AI engine | Bundled `thermal-cored` daemon adapts to vendor thermal zones and learning props |
 | WebUI | Live dashboard, one-tap profiles, guard controls, custom editor, backup/restore, log export |
-| Conflict awareness | Passively reports other tuning/thermal modules (never writes to them) so you can avoid fighting over the same sysfs knobs |
+| Conflict awareness | Passively reports other tuning/battery modules, including ones that lock cpufreq nodes (never writes to them), so you can avoid fighting over the same sysfs knobs |
 | Safety net | Auto snapshot before apply, rollback on failure, factory restore on uninstall, managed-path-only writes |
 | Updates | `updateJson` enabled, so the KernelSU/APatch manager can check and install new releases directly |
 
@@ -117,7 +117,7 @@ Root cause: this ROM's `/system/bin/sh` has no `printf` builtin, so every `print
 Requirements: Python 3 (stdlib only), Git.
 
 ```sh
-python3 scripts/build_zip.py --out dist/ThermalCore-2.5.1.zip
+python3 scripts/build_zip.py --out dist/ThermalCore-2.5.2.zip
 ```
 
 The script packages exactly the module payload, sets executable modes, embeds the installer checksums and optionally overrides version metadata:

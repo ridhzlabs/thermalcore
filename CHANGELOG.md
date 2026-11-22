@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.5.2] - 2026-11-22
+
+### Conflict handling
+- Conflict detection now also flags battery/RAM optimiser modules (e.g. ones that freeze GMS, tune LMK or `chmod 444` the cpufreq nodes), not only thermal/governor tuners.
+- `apply` now pre-flights the CPU frequency nodes: if another module made them read-only, it aborts with an explicit explanation instead of a confusing partial apply + rollback. No changes are written in that case.
+- Note: if a battery module locks cpufreq or resets `vfs_cache_pressure`, disable it — two modules writing the same knobs can never both win.
+
+### Notes
+- Update in place or flash over 2.5.1, then reboot once.
+
 ## [v2.5.1] - 2026-11-16
 
 ### SmartTherm: multitasking-first memory policy

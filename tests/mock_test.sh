@@ -394,6 +394,13 @@ mkdir -p "$DATA/mods/magnetar" "$DATA/mods/thermal-core"
 wf "$DATA/mods/magnetar/module.prop" "id=magnetar
 name=Magnetar Updater
 description=Performance governor tuner"
+mkdir -p "$DATA/mods/NeoBattery" "$DATA/mods/Frosty"
+wf "$DATA/mods/NeoBattery/module.prop" "id=NeoBattery
+name=NeoBattery
+description=Battery efficiency, lowers max CPU frequency"
+wf "$DATA/mods/Frosty/module.prop" "id=Frosty
+name=Frosty - Battery Saver
+description=Freeze GMS, doze, kernel tweaks, RAM optimizer"
 wf "$DATA/mods/thermal-core/module.prop" "id=thermal-core
 name=ThermalCore
 description=Universal thermal & power core"
@@ -407,6 +414,8 @@ assert r.get('night') is True, 'relief.night missing'
 assert 'mode' in r and 'mem_avail_pct' in r, 'relief fields missing'
 assert isinstance(d.get('conflicts'), list), 'conflicts not list'
 assert 'magnetar' in d['conflicts'], 'magnetar not detected'
+assert 'NeoBattery' in d['conflicts'], 'NeoBattery not detected'
+assert 'Frosty' in d['conflicts'], 'Frosty not detected'
 assert 'thermal-core' not in d['conflicts'], 'self detected'
 " && ok "status json: relief fields + conflict detection" || bad "status json: relief/conflicts"
 # no conflicting modules -> empty array

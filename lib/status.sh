@@ -381,7 +381,7 @@ status_conflicts() {
       [ -z "$_sc_id" ] && continue
       case ",${_sc_list}," in *",${_sc_id},"*) continue ;; esac
       case "${_sc_id} ${_sc_nm} ${_sc_ds}" in
-        *[Tt]hermal*|*[Cc]ool*|*governor*|*[Gg]odspeed*|*[Mm]agnetar*|*[Ll]speed*|*[Ff]rigus*|*[Oo]verclock*|*[Uu]CC*)
+        *[Tt]hermal*|*[Cc]ool*|*governor*|*[Gg]odspeed*|*[Mm]agnetar*|*[Ll]speed*|*[Ff]rigus*|*[Oo]verclock*|*[Uu]CC*|*[Nn]eo*|*[Bb]attery*|*[Ff]rosty*|*[Dd]oze*|*[Ss]aver*|*ppm*)
           _sc_list="$_sc_list ${_sc_id}" ;;
       esac
     done
@@ -515,7 +515,7 @@ status_json() {
   _nl_bool="$(config_get NIGHT_LEAN)";        [ "${_nl_bool:-1}" = "0" ] && _nl_bool=false || _nl_bool=true
   status_conflicts
 
-  json_escape_val "${_modver:-2.5.1}"; _jv_modver="$_JE"
+  json_escape_val "${_modver:-2.5.2}"; _jv_modver="$_JE"
   json_escape_val "$_learning"; _jv_learning="$_JE"
   json_escape_val "$_debug"; _jv_debug="$_JE"
   json_escape_val "${_last_backup:-none}"; _jv_backup="$_JE"

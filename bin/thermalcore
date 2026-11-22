@@ -137,10 +137,26 @@ cmd_profiles() {
   done
 }
 
+cpu_freq_nodes_writable() {
+  for _pn in /sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq; do
+    [ -f "$(spath "$_pn")" ] || continue
+    _pv="$(read_file "$_pn" 2>/dev/null)" || return 1
+    is_uint "$_pv" || return 1
+    _probe_out="$( { write_file "$_pn" "$_pv"; } 2>&1 )" || return 1
+    [ -z "$_probe_out" ] || return 1
+  done
+  return 0
+}
+
 cmd_apply() {
   need_root
   _name="$1"
   [ -z "$_name" ] && { echo "usage: thermalcore apply <battery_saver|smartherm|balanced|performance|gaming|custom>" >&2; return 2; }
+  if ! cpu_freq_nodes_writable; then
+    echo "apply aborted: CPU frequency nodes are read-only or locked (chmod 444)." >&2
+    echo "Another module likely owns them. Disable it or restore 0644 on /sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq." >&2
+    return 2
+  fi
   case "$_name" in custom) init_default_config ;; esac
   APPLY_FAIL=0; APPLY_WARN=0; APPLY_NOTE=""
   if apply_profile "$_name"; then

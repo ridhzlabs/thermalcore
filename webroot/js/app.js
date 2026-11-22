@@ -71,7 +71,7 @@
 
   var DEMO_STATUS = {
     module: {
-      id: 'thermal-core', version: '2.5.1', profile: 'balanced', uptime_s: 90210,
+      id: 'thermal-core', version: '2.5.2', profile: 'balanced', uptime_s: 90210,
       daemon: { pid: 4094, alive: true, learning: 'true', debug: 'false' },
       guard: { enabled: true, triggered: false, battery_max_c: 45, interval_s: 30, last_check: 0 },
       toggles: { cpu: true, gpu: true, io: true, vm: true },
@@ -357,9 +357,9 @@
     var gpu = s.gpu || {};
     var cpu = s.cpu || {};
 
-    setText('versionChip', 'v' + (mod.version || '2.5.1'));
-    el('versionChip').textContent = 'v' + (mod.version || '2.5.1');
-    setText('aboutVersion', mod.version || '2.5.1');
+    setText('versionChip', 'v' + (mod.version || '2.5.2'));
+    el('versionChip').textContent = 'v' + (mod.version || '2.5.2');
+    setText('aboutVersion', mod.version || '2.5.2');
     setText('footerUpdate', state.demo ? 'preview' : ('updated ' + new Date().toLocaleTimeString()));
 
     var profile = mod.profile || 'balanced';
